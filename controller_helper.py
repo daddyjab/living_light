@@ -11,9 +11,10 @@ import neopixel
 import adafruit_matrixkeypad
 import RPi.GPIO as GPIO
 
+# Classes and functions for controlling the conceptual model
+from model_helper import *
 
-
-class LightingController():
+class LightingController(Model):
     """
     Class providing initialization and usage of the
     Raspberry Pi-based lighting controller for Imani Brown.
@@ -22,9 +23,15 @@ class LightingController():
 	* OSEPP Ultrasonic Sensor Module [HC-SR04] - http://www.piddlerintheroot.com/hc-sr04/
 	* OSEPP Infrared (IR) Detector [IR-DET01] - https://www.osepp.com/electronic-modules/sensor-modules/64-ir-detector
 	* Adafruit Membrane 1x4 Keypad - http://adafru.it/1332
+
+    Child class of the Model class, which represents the conceptual model
+    of the LED configurations and provides methods for LED brightness/color settings
     """
 
     def __init__(self, led_brightness=0.5, run_distance_calibration=False ):
+
+        # Run the constructor for the superclass
+        super(LightingController, self).__init__()
 
         # Initialize the controller        
         logging.info("Initialization starting...")

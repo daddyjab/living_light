@@ -8,9 +8,13 @@ import time
 # Classes and functions for managing the lighting controller
 from controller_helper import LightingController
 
+# Classes and functions for controlling the conceptual model
+from model_helper import *
+
 # Create a LightingController object,
 # which initializes the controller and all of its sensors
 lc = LightingController( led_brightness=0.5, run_distance_calibration=False )
+
 
 # MAIN PROCESSING LOOP
 # Perform an infinite loop of processing, and during each iteration:
@@ -97,6 +101,7 @@ while True:
                 logging.info("Key 3 Pressed: Setting model to scenario 'Energy'")
 
                 # Turn off the LED Strip
+                # @TODO: Replace this with a Stop Scenario function                
                 lc.all_leds_off()
 
                 # Change to 'Energy' scenario
