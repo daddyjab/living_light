@@ -41,7 +41,7 @@ def rgb_int_to_hls( rgb:tuple ) -> tuple:
      RGB: Values 0 to 255
      HLS: Values 0.0 to 1.0
      """
-     return colorsys.rgb_to_hls( *[ x/256.0 for x in rgb ])
+     return colorsys.rgb_to_hls( *[ x/255.0 for x in rgb ])
 
 
 def rgb_int_to_hsv( rgb:tuple ) -> tuple:
@@ -50,7 +50,7 @@ def rgb_int_to_hsv( rgb:tuple ) -> tuple:
      RGB: Values 0 to 255
      HSV: Values 0.0 to 1.0
      """
-     return colorsys.rgb_to_hsv( *[ x/256.0 for x in rgb ])
+     return colorsys.rgb_to_hsv( *[ x/255.0 for x in rgb ])
 
 
 def hsv_to_rgb_int( hsv:tuple ) -> tuple:
@@ -59,7 +59,7 @@ def hsv_to_rgb_int( hsv:tuple ) -> tuple:
      HSV: Values 0.0 to 1.0
      RGB: Values 0 to 255
      """
-     return [ int(256*x) for x in colorsys.hsv_to_rgb(*hsv) ]
+     return [ int(round(255*x)) for x in colorsys.hsv_to_rgb(*hsv) ]
 
 
 def hls_to_rgb_int( hls:tuple ) -> tuple:
@@ -68,5 +68,5 @@ def hls_to_rgb_int( hls:tuple ) -> tuple:
      HLS: Values 0.0 to 1.0
      RGB: Values 0 to 255
      """
-     return [ int(256*x) for x in colorsys.hls_to_rgb(*hls) ]
+     return [ int(round(255*x)) for x in colorsys.hls_to_rgb(*hls) ]
 
