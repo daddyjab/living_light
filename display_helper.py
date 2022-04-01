@@ -5,6 +5,7 @@ import matplotlib.image as mpimg
 from IPython.display import HTML
 from IPython.display import Image as disp_Image
 import colorsys
+import re
 
 def display_images( images=None, ms=50, loop=10 ):
      """
@@ -33,6 +34,9 @@ def display_images( images=None, ms=50, loop=10 ):
 
 def rgb_to_string( rgb:tuple ) -> str:
      return f"rgb({rgb[0]},{rgb[1]},{rgb[2]})"
+
+def rgb_string_to_tuple( rgb_str:str ) -> tuple:
+     return tuple([ int(x) for x in rgb_str.replace('rgb(','').replace(')','').split(',') ])
 
 
 def rgb_int_to_hls( rgb:tuple ) -> tuple:

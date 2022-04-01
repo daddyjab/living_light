@@ -90,6 +90,37 @@ class LightingController(Model):
         self.led_strip.fill( (0,0,0) )
 
 
+    # Overload this function to replace the simulated LED inteface
+    # with the real hardware LED interface
+    def draw_model_leds(self, led_colors:dict=None ):
+        """
+        Set LEDs the physical LED Strip based upon the configurations
+        of the model and the color for each LED
+        """
+
+        # The input array of colors led_colors must have the
+        # same dimensions as the model configuration that provides
+        # a mapping to the LED Strip IDs
+        assert np.array(led_colors).shape == np.array( self.MODEL_CONFIG[c]['led_ids'] ).shape, "ERROR: led_colors shape must match self.MODEL_CONFIG[c]['led_ids'] shape"
+
+        # Loop through each component of the Model (each side and the top)
+        for c in self.MODEL_CONFIG:
+
+            # Use the config info to determine which LED to set
+            # for each element of input array led_colors
+            for col in range(self.MODEL_CONFIG[c]['leds']['cols']):
+                for row in range(self.MODEL_CONFIG[c]['leds']['rows']):
+
+                    # Map input coordinates of a LED to a physical LED index for this component
+                    led_id = self.MODEL_CONFIG[c]['led_ids'][row][col]
+
+                    # Set the LED using the specified color
+                    # @TODO: Create the function to map a RGB string values to tuples
+                    self.led_strip[led_id] = rgb_string_to_tuple( led_colors[c][col][row] )
+
+
+
+
     # *************************************************
     # Distance (Ultrasonic) Sensor Methods
     # *************************************************

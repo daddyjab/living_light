@@ -19,7 +19,13 @@ class Model():
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
-                'led_ids': None,
+                'led_ids': np.array([
+                                    [  0,   1,   2,   3,   4,   5],
+                                    [  6,   7,   8,   9,  10,  11],
+                                    [ 12,  13,  14,  15,  16,  17],
+                                    [ 18,  19,  20,  21,  22,  23],
+                                    [ 24,  25,  26,  27,  28,  29],
+                                    ]),
 
                 # Simulated: Dimensions of this component in the simulated model
                 'bbox': (0,200, 200,400),
@@ -31,7 +37,13 @@ class Model():
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
-                'led_ids': None,
+                'led_ids': np.array([
+                                    [ 40,  41,  42,  43,  44,  45],
+                                    [ 46,  47,  48,  49,  50,  51],
+                                    [ 52,  53,  54,  55,  56,  57],
+                                    [ 58,  59,  60,  61,  62,  63],
+                                    [ 64,  65,  66,  67,  68,  69],
+                                    ]),
 
                 # Simulated: Dimensions of this component in the simulated model
                 'bbox': (400,200, 600,400),
@@ -43,7 +55,10 @@ class Model():
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
-                'led_ids': None,
+                'led_ids': np.array([
+                                    [ 30,  31,  32],
+                                    [ 33,  34,  35],
+                                    ]),
 
                 # Simulated: Dimensions of this component in the simulated model
                 'bbox': (200,0, 400,200),
@@ -94,8 +109,7 @@ class Model():
     def draw_model_leds(self, led_colors:dict=None ):
         """
         Draw LEDs on the model based upon the configurations
-        of the model
-        @TODO: and the color for each LED
+        of the model and the color for each LED (as RGB string)
         """
 
         # Prepare to draw objects
@@ -135,6 +149,11 @@ class Model():
                         _draw_led( ( pix_per_col*col + bbox[0], pix_per_row*row + bbox[1] ), color=led_colors[c][row-1][col-1] )
                     else:
                         _draw_led( ( pix_per_col*col + bbox[0], pix_per_row*row + bbox[1] ) )
+
+    # ***********************************************
+    # Methods for Mapping Brightness
+    # within Color Profile to LED Colors
+    # ***********************************************
 
     def light_profile( self, source=None, temp=None ):
         """
@@ -233,4 +252,5 @@ class Model():
             # get the LED colors for this component based upon the specified Color Profile
             led_colors[c] = self.map_led_brightness_to_rgb_string( b_arr, color_profile )
 
+        # Return a dictionary with arrays of LED colors that match the components of the Model
         return led_colors

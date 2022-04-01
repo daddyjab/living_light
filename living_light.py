@@ -16,6 +16,14 @@ from model_helper import *
 lc = LightingController( led_brightness=0.5, run_distance_calibration=False )
 
 
+# KLUDGE: Show a static test pattern until true LED processing is in place
+# Get the LED RGB values for the test pattern
+led_colors = lc.led_test_pattern('Range', 'Direct Sunlight' )
+
+# Display the test pattern on the LED Strip
+lc.draw_model_leds( led_colors)
+
+
 # MAIN PROCESSING LOOP
 # Perform an infinite loop of processing, and during each iteration:
 # 1. Increment an iteration counter
