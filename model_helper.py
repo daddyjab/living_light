@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 from PIL import Image, ImageDraw, ImageColor
 
 from display_helper import *
@@ -70,8 +71,8 @@ class Model():
             'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'Come In' },
             'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'Come In' },
             'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Come In' },
-            'Diagnostics': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' }
-            'Off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Off' }
+            'Diagnostics': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' },
+            'Off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Off' },
         }
 
         # Current Model scenario
@@ -96,7 +97,7 @@ class Model():
 
         # Initialize but don't start the default scenario
         logging.info("Initializing Lighting Scenario: Idle")
-        init_model_scenario( scenario='Idle' )
+        self.init_model_scenario( scenario='Idle' )
 
 
     # ***********************************************
@@ -264,13 +265,13 @@ class Model():
         # Return a dictionary with arrays of LED colors that match the components of the Model
         return led_colors
 
-    def init_model_scenario( scenario:str='Idle' ):
+    def init_model_scenario( self, scenario:str='Idle' ):
         """
         Set the overall lighting scenario in use by the Model
         """
 
         # Store the scenario in this object
-        self.model_scenario = scenario
+        self.scenario = scenario
 
         # Stop any currently running scenario and prepare (but don't start) the requested scenario
         # @TODO

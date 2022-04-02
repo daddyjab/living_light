@@ -257,7 +257,7 @@ class LightingController(Model):
         logging.info("Step 1 of 10: Baseline distance.")
         _ = input("==> Remove all objects/obstacles from near the model, then press ENTER. ")
         logging.info("Baseline distance measurement starting.")
-        baseline_distance = self.get_distance(self)
+        baseline_distance = self.get_distance()
         logging.info("Baseline distance measurement completed.")
 
         # Get measurements for the calibrated positions
@@ -265,8 +265,8 @@ class LightingController(Model):
         step = 2
         for depth in ['Entrance', 'Midway', 'Exit']:
             for side in ['Right', 'Center', 'Left']:
-                logging.info("Step {step} of 10: '{depth}' and '{side}'")
-                _ = input("==> Place the person at '{depth}' and '{side}', then press ENTER. ")
+                logging.info(f"Step {step} of 10: '{depth}' and '{side}'")
+                _ = input(f"==> Place the person at '{depth}' and '{side}', then press ENTER. ")
                 calibrated_positions[depth][side] = self.get_distance()
                 step += 1
 

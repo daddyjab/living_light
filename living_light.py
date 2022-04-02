@@ -49,7 +49,7 @@ lc.draw_model_leds( led_colors)
 LOOP_SLEEP_TIME = 1e-3
 
 # Time between LED updates (sec)
-LED_UPDATE_TIME_SEC = 0.1
+LED_UPDATE_TIME_SEC = 0.01
 last_led_update_time = time.time()
 led_timestep = 0
 
