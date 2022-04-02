@@ -309,6 +309,7 @@ class Model():
         # Functions that implement LED patterns 
         BRIGHTNESS_PATTERN_FUNCTION = {
             'Come In': self._pattern_come_in,
+            'Ellipse': self._pattern_ellipse,
             'Range': self._pattern_range,
             'Off': self._pattern_off,
             'On': self._pattern_on,
@@ -346,38 +347,91 @@ class Model():
     # Brightness Pattern Functions, which LED brightness/behavior
     # based upon location of the LED, the number of LEDs on the component (sides, top),
     # current timestep, measured distance to an object, and objects in proximity to entrance/exit
+    #
+    # Note:
+    # * Respiration rate at rest (adult normal): 12 to 20 breaths per minute => 3 to 5 seconds per breath
+    # * Respiration rate after brisk walk (adul normal): 30 breaths per minute => 2 seconds per breath
+    # * Respiration rate during exercise (adult normal): 40-60 breaths per minute => 1 to 1.5 seconds per breath
     # **********************************************************************************************
     def _pattern_come_in( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+        """
+        Provide a brightness patternt that invites a person to enter the space
+        """
 
-        # Initialize brightness return value
-        b = None
-
-        # Bright has a fixed base brightness level + adjusted brightness that varies
-        b_base = 0.1
-        b_adj = 0.9
+        # Brightness decomposed to a fixed base brightness level
+        # plus an adjusted brightness that can vary based upon the various input parameters
+        b_fixed = 0.3
+        b_adj = 1.0
 
         # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
-        # * Respiration rate at rest (adult normal): 12 to 20 breaths per minute => 3 to 5 seconds per breath
-        # * Respiration rate during exercise (adult normal): 40-60 breaths per minute => 1 to 1.5 seconds per breath
-
         if c=='Right':
-            # Cyclic brightness based upon column and timestep
-            b = b_base + b_adj * np.abs( np.sin( np.pi * ( (c_ix + t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
+            # Sinusoidal cycling of brightness based upon column and timestep
+            b_adj = np.abs( np.sin( np.pi * ( (c_ix + t)/(n_c-1) ) ) if n_c > 1 else 1.0 )
+            b_adj *= np.abs( np.sin( np.pi * t/40 ) )
 
         elif c=='Top':
-            # Cyclic brightness based upon column and timestep
-            b = b_base + b_adj * np.abs( np.sin( np.pi * t/16 ) )
+            # Sinusoidal cycling of brightness based upon column and timestep
+            b_adj = np.abs( np.sin( np.pi * ( (c_ix + t)/(n_c-1) ) ) if n_c > 1 else 1.0 )
+            b_adj *= np.abs( np.sin( np.pi * t/40 ) )
 
         elif c=='Left':
-            # Cyclic brightness based upon column and timestep
-            b = b_base + b_adj * np.abs( np.sin( np.pi * ( (c_ix - t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
+            # Sinusoidal cycling of brightness based upon column and timestep
+            b_adj = np.abs( np.sin( np.pi * ( (c_ix - t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
+            b_adj *= np.abs( np.sin( np.pi * t/40 ) )
 
-        return b
+        # Return the composite brightness value
+        return b_fixed + (1.0-b_fixed) * b_adj
+
+
+    def _pattern_ellipse( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+        """
+        Provide a brightness patternt that invites a person to enter the space
+        """
+
+        # Brightness decomposed to a fixed base brightness level
+        # plus an adjusted brightness that can vary based upon the various input parameters
+        b_fixed = 0.3
+        b_adj = 1.0
+
+        # Establish the focus column of the image
+        r_focus = n_r//2
+        c_focus = n_c//2
+
+        # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
+        if c=='Right':
+            # Ellipse of brightness based upon row and column
+            # overlaid with sinusoidal cycling of brightness based upon timestep only
+            b_steep = 4.0
+            t_breathe = 50
+            b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( (n_c-(t % n_c))-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
+            b_adj = np.clip( b_adj, 0.0, 1.0 ) * np.abs( np.sin( np.pi * t/t_breathe ) )
+
+        elif c=='Top':
+            # Sinusoidal cycling of brightness based upon timestep only
+            t_breathe = 50
+            b_adj = np.abs( np.sin( np.pi * t/t_breathe ) )
+
+        elif c=='Left':
+            # Ellipse of brightness based upon row and column
+            # overlaid with sinusoidal cycling of brightness based upon timestep only
+            b_steep = 4.0
+            t_breathe = 50
+            b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( (t % n_c)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep )
+            b_adj = np.clip( b_adj, 0.0, 1.0 ) * np.abs( np.sin( np.pi * t/t_breathe ) )
+
+        # Return the composite brightness value
+        return b_fixed + (1.0-b_fixed) * b_adj
 
     def _pattern_range( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+        """
+        A basic diagnostic pattern showing the full range of brightness 0.0 to 1.0
+        across the full range of row and column positions (0,0) to (n_r,n_c)
+        """
 
-        b = None
+        # Initialize the brightness level
+        b = 0
 
+        # Show the full range of brightness values on all components (sides, top) of the model
         if c=='Right':
             # Low to High Brightness based upon row and column
             b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
@@ -394,8 +448,14 @@ class Model():
 
 
     def _pattern_off( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+        """
+        Set the brightness to its lowest level
+        """
         return 0.0
 
     def _pattern_on( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+        """
+        Set the brightness to its highest level
+        """
         return 1.0
 
