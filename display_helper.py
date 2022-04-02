@@ -1,11 +1,11 @@
-import numpy as np
-from PIL import Image, ImageDraw, ImageColor
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-from IPython.display import HTML
+# import numpy as np
+# from PIL import Image, ImageDraw, ImageColor
+# import matplotlib.pyplot as plt
+# import matplotlib.image as mpimg
+# from IPython.display import HTML
 from IPython.display import Image as disp_Image
 import colorsys
-import re
+# import re
 
 def display_images( images=None, ms=50, loop=10 ):
      """

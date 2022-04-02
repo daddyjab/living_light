@@ -65,12 +65,24 @@ class Model():
                 }
         }
 
-        # Model image
+        # Model Scenarios
+        self.MODEL_SCENARIO_CONFIG = {
+            'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'Come In' },
+            'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'Come In' },
+            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Come In' },
+            'Diagnostics': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' }
+            'Off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Off' }
+        }
+
+        # Current Model scenario
+        self.scenario = None
+
+        # Model image (Simulation)
         self.model = None
 
-        # Light Profiles
+        # Color Profiles
         # http://planetpixelemporium.com/tutorialpages/light.html
-        self.LIGHT_PROFILE = {
+        self.COLOR_PROFILE = {
             'Candle': { 'temp': 1900, 'rgb': (255, 147, 41) },
             '40W Tungsten': { 'temp': 2600, 'rgb': (255, 197, 143) },
             '100W Tungsten': { 'temp': 2850, 'rgb': (255, 214, 170) },
@@ -82,12 +94,9 @@ class Model():
             'Clear Blue Sky': { 'temp': 20000, 'rgb': (64, 156, 255) },
         }
 
-        # Lighting Scenarios
-        self.LIGHT_SCENARIO = {
-            'Idle': None,
-            'Standard': None,
-            'Energy': None,
-        }
+        # Initialize but don't start the default scenario
+        logging.info("Initializing Lighting Scenario: Idle")
+        init_model_scenario( scenario='Idle' )
 
 
     # ***********************************************
@@ -164,14 +173,14 @@ class Model():
         """
 
         if (source is not None) and (temp is None):
-            return { source: self.LIGHT_PROFILE[source] }
+            return { source: self.COLOR_PROFILE[source] }
 
         if (source is None) and (temp is not None):
-            for source in self.LIGHT_PROFILE:
-                if temp == self.LIGHT_PROFILE[source]['temp']:
-                    return { source: self.LIGHT_PROFILE[source] }
+            for source in self.COLOR_PROFILE:
+                if temp == self.COLOR_PROFILE[source]['temp']:
+                    return { source: self.COLOR_PROFILE[source] }
 
-        return self.LIGHT_PROFILE
+        return self.COLOR_PROFILE
 
 
     # Create arrays representing the LED colors
@@ -192,7 +201,7 @@ class Model():
         b_array = np.clip( brightness_array, 0.0, 1.0 )
 
         # Get the base HLS values that correspond to the color profile RGB
-        h_prof, l_prof, s_prof = rgb_int_to_hls( np.array(self.LIGHT_PROFILE[c_profile]['rgb']) )
+        h_prof, l_prof, s_prof = rgb_int_to_hls( np.array(self.COLOR_PROFILE[c_profile]['rgb']) )
 
         # Helper function to map 
         def _helper_brightness_to_rgb_in_profile( b:float=None ) -> tuple:
@@ -217,7 +226,7 @@ class Model():
             'On': All LEDs set to maximum brightness for the specified color profile
             'Off': All LEDs set to the minimum brightness for the specified color profile
 
-        * color_profile: Color Profile selection from self.LIGHT_PROFILE [default: 'Direct Sunlight']
+        * color_profile: Color Profile selection from self.COLOR_PROFILE [default: 'Direct Sunlight']
         """
         led_colors = {}
         for c in self.MODEL_CONFIG:
@@ -254,3 +263,119 @@ class Model():
 
         # Return a dictionary with arrays of LED colors that match the components of the Model
         return led_colors
+
+    def init_model_scenario( scenario:str='Idle' ):
+        """
+        Set the overall lighting scenario in use by the Model
+        """
+
+        # Store the scenario in this object
+        self.model_scenario = scenario
+
+        # Stop any currently running scenario and prepare (but don't start) the requested scenario
+        # @TODO
+        pass
+
+
+    def update_led_pattern(self, timestep:int=None, distance:tuple=None, proximity:dict=None ):
+        """
+        Within the main loop, update the LED pattern that is currently
+        running based upon the timestep that is specified
+
+        Do what's needed to make one update to the LEDs based upon:
+        * The current scenario (and associated LED Pattern and Color Profile)
+        * The current timestep
+        * Distance measured to objects in the Model
+        * Proximity of objects to Entrance or Exit
+        """
+
+        color_profile = self.MODEL_SCENARIO_CONFIG[self.scenario]['color_profile']
+        led_pattern = self.MODEL_SCENARIO_CONFIG[self.scenario]['led_pattern']
+
+        # Functions that implement LED patterns 
+        BRIGHTNESS_PATTERN_FUNCTION = {
+            'Come In': self._pattern_come_in,
+            'Range': self._pattern_range,
+            'Off': self._pattern_off,
+            'On': self._pattern_off,
+        }
+
+        # Increment the LED pattern and return an array of RGB color strings for each Model component
+        # Use a specified Bightness Pattern Function associated with the current scenario
+        # to generate a set of RGB string values for each of the components of the model
+        brightness_vals = {}
+        led_colors = {}
+        for c in self.MODEL_CONFIG:
+
+            # Component LED config
+            rows = self.MODEL_CONFIG[c]['leds']['rows']
+            cols = self.MODEL_CONFIG[c]['leds']['cols']
+
+            # Create an array of the proper dimensions for this component of the model
+            brightness_vals[c] = np.zeros( (rows,cols) )
+
+            # Set the LEDs to show the full range of brightness from 0.0 to 1.0 
+            for row_ix in range(rows):
+                for col_ix in range(cols):
+
+                    # Generate brightness levels based upon a supplied function
+                    brightness_vals[c][row_ix,col_ix] = BRIGHTNESS_PATTERN_FUNCTION[led_pattern]( c, row_ix, col_ix, rows, cols, timestep, distance, proximity )
+
+            # Convert brightness levels to RGB strings
+            led_colors[c] = self.map_led_brightness_to_rgb_string( brightness_vals[c], color_profile )
+        
+        # Update the LEDs (either physical LEDs or simulated LEDs)
+        self.draw_model_leds( led_colors )
+
+
+    # **********************************************************************************************
+    # Brightness Pattern Functions, which LED brightness/behavior
+    # based upon location of the LED, the number of LEDs on the component (sides, top),
+    # current timestep, measured distance to an object, and objects in proximity to entrance/exit
+    # **********************************************************************************************
+    def _pattern_come_in( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+
+        b = None
+
+        if c=='Right':
+            # Cyclic brightness based upon column and timestep
+            b = np.abs( np.sin( np.pi * ( (c_ix + t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
+
+        elif c=='Top':
+            # Cyclic brightness based upon column and timestep
+            b = np.abs( np.sin( np.pi * t/16 ) )
+
+        elif c=='Left':
+            # Cyclic brightness based upon column and timestep
+            b = np.abs( np.sin( np.pi * ( (c_ix - t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
+
+            # Low to High Brightness based upon row and column
+            # b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+
+        return b
+
+    def _pattern_range( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+
+        b = None
+
+        if c=='Right':
+            # Low to High Brightness based upon row and column
+            b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+
+        elif c=='Top':
+            # Low to High Brightness based upon row and column
+            b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+
+        elif c=='Left':
+            # Low to High Brightness based upon row and column
+            b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+
+        return b
+
+
+    def _pattern_off( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+        return 0.0
+
+    def _pattern_on( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
+        return 1.0
+

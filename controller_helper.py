@@ -101,7 +101,7 @@ class LightingController(Model):
         # The input array of colors led_colors must have the
         # same dimensions as the model configuration that provides
         # a mapping to the LED Strip IDs
-        assert np.array(led_colors).shape == np.array( self.MODEL_CONFIG[c]['led_ids'] ).shape, "ERROR: led_colors shape must match self.MODEL_CONFIG[c]['led_ids'] shape"
+        #assert np.array(led_colors).shape == np.array( self.MODEL_CONFIG[c]['led_ids'] ).shape, "ERROR: led_colors shape must match self.MODEL_CONFIG[c]['led_ids'] shape"
 
         # Loop through each component of the Model (each side and the top)
         for c in self.MODEL_CONFIG:
@@ -115,10 +115,7 @@ class LightingController(Model):
                     led_id = self.MODEL_CONFIG[c]['led_ids'][row][col]
 
                     # Set the LED using the specified color
-                    # @TODO: Create the function to map a RGB string values to tuples
-                    self.led_strip[led_id] = rgb_string_to_tuple( led_colors[c][col][row] )
-
-
+                    self.led_strip[led_id] = rgb_string_to_tuple( led_colors[c][row][col] )
 
 
     # *************************************************
@@ -377,7 +374,8 @@ class LightingController(Model):
         
         # Setup keypad configuration amd store the keypad as a property of this object
         keypad_rows = [ digitalio.DigitalInOut(x) for x in (board.D5,) ]
-        keypad_cols = [ digitalio.DigitalInOut(x) for x in (board.D26, board.D6, board.D24, board.D23) ]
+        #keypad_cols = [ digitalio.DigitalInOut(x) for x in (board.D26, board.D6, board.D24, board.D23) ]
+        keypad_cols = [ digitalio.DigitalInOut(x) for x in (board.D13, board.D6, board.D24, board.D23) ]
         keypad_keys = ( (1,2,3,4), )
         self.keypad = adafruit_matrixkeypad.Matrix_Keypad(keypad_rows, keypad_cols, keypad_keys)
 
