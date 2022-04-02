@@ -1,4 +1,5 @@
 # Setup logging
+from decimal import DivisionByZero
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
@@ -46,14 +47,16 @@ lc.draw_model_leds( led_colors)
 # 6. Wait a short period of time and then restart the loop.
 
 # Time to wait on each loop: 1 millisecond
-LOOP_SLEEP_TIME = 1e-3
+# Revised: No loop sleep time neeed since both LED updates and Reports
+#          now have time-based (not iteration based) thresholds
+LOOP_SLEEP_TIME = 0
 
-# Time between LED updates (sec)
+# Time between LED updates (sec): 0.01 sec = 10 milliseconds
 LED_UPDATE_TIME_SEC = 0.01
 last_led_update_time = time.time()
 led_timestep = 0
 
-# Iterations between reports (about every 1 seconds)
+# Iterations between reports (sec): 0.5 sec = 500 milliseconds
 REPORT_UPDATE_TIME_SEC = 0.5
 last_report_update_time = time.time()
 
@@ -64,19 +67,35 @@ is_nearby = {}
 # Keypad
 retained_pressed_keys = None
 
+# Loop metrics
+elapsed_time = None
+prev_time = None
+this_time = None
+loop_elapsed_time = { 'last': 0, 'min': 9999999, 'max': -1, 'sum':0, 'count':0 }
+
 # Main Loop
 while True:
+
+
+    # ****************************************************************
+    # Loop Metrics
+    # ****************************************************************
+    prev_time = this_time
+    this_time = time.time()
+    if prev_time is not None:
+        elapsed_time = this_time - prev_time
+        loop_elapsed_time['min'] = min( loop_elapsed_time['min'], elapsed_time)
+        loop_elapsed_time['max'] = max( loop_elapsed_time['max'], elapsed_time)
+        loop_elapsed_time['sum'] = sum( loop_elapsed_time['sum'], elapsed_time)
+        loop_elapsed_time['count'] += 1
 
     # ****************************************************************
     # Update LEDs based upon the current Lighting Scenario
     # ****************************************************************
-
-    # Update LEDs periodically (but not too often, or light patterns may not be visible)
-    this_led_time = time.time()
-    if this_led_time - last_led_update_time > LED_UPDATE_TIME_SEC:
+    if this_time - last_led_update_time > LED_UPDATE_TIME_SEC:
         
         # Update the time tracking
-        last_led_update_time = this_led_time
+        last_led_update_time = this_time
 
         # Reset the LED timestep counter when it reaches over 24hrs (86,400 secs) of run time
         # NOTE: LED timestep counter is used to move LED pattern sequencies
@@ -90,21 +109,21 @@ while True:
         lc.update_led_pattern(timestep=led_timestep, distance=dist, proximity=is_nearby )
 
     # ****************************************************************
-    # Save any pressed keys and retain them for later processing
+    # Save any pressed keys and retain them for later use durin
+    # Report processing
     # ****************************************************************
-
-    # Accept and retain key presses, for use during the next report
     pressed_keys = lc.get_all_pressed_keys()
     if pressed_keys:
         retained_pressed_keys = pressed_keys
 
+    # ****************************************************************
     # Generate reports and check for key presses periodically
     # Update LEDs periodically (but not too often, or light patterns may not be visible)
-    this_report_update_time = time.time()
-    if this_report_update_time - last_report_update_time > REPORT_UPDATE_TIME_SEC:
+    # ****************************************************************
+    if this_time - last_report_update_time > REPORT_UPDATE_TIME_SEC:
         
         # Update the time tracking
-        last_report_update_time = this_report_update_time
+        last_report_update_time = this_time
 
         # If a keys were pressed during the main loop, then display them.
         if retained_pressed_keys:
@@ -165,8 +184,6 @@ while True:
         # ****************************************************************
         # Update distance measurements
         # ****************************************************************
-
-        # Check the distance
         dist = lc.get_distance()
         try:
             logging.info(f"Left Distance: {dist[0]}, Right Distance: {dist[1]}")
@@ -176,13 +193,21 @@ while True:
         # ****************************************************************
         # Update proximity indicators
         # ****************************************************************
-
-        # Check if an object is in proximity
         is_nearby = lc.is_object_nearby()
         try:
             logging.info(f"Object Near Entrance: {is_nearby['Entrance']}, Object Near Exit: {is_nearby['Exit']}")
         except:
             pass
+
+
+        # ****************************************************************
+        # DEBUG: Display loop metrics
+        # ****************************************************************
+        try:
+            loop_avg = loop_elapsed_time['sum'] / ( loop_elapsed_time['count'] )
+        except DivisionByZero:
+            loop_avg = 0.0
+        logging.info(f"Loop Elapsed Time: Avg: {1000.0*loop_avg:.3f} ms, Min: {1000.0*loop_elapsed_time['min']:.3f} ms, Max: {1000.0*loop_elapsed_time['max']:.3f} ms, Loops: {loop_elapsed_time['count']} iterations")
 
 
     # ****************************************************************

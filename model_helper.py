@@ -17,54 +17,54 @@ class Model():
         self.MODEL_CONFIG = {
             'Left': {
                 # Real and Simulated: Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 5, 'cols': 6 },
+                'leds': { 'rows': 4, 'cols': 20 },
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
                 'led_ids': np.array([
-                                    [  0,   1,   2,   3,   4,   5],
-                                    [  6,   7,   8,   9,  10,  11],
-                                    [ 12,  13,  14,  15,  16,  17],
-                                    [ 18,  19,  20,  21,  22,  23],
-                                    [ 24,  25,  26,  27,  28,  29],
+                                    [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+                                    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+                                    [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
+                                    [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
                                     ]),
 
                 # Simulated: Dimensions of this component in the simulated model
-                'bbox': (0,200, 200,400),
-                },
-
-            'Right': {
-                # Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 5, 'cols': 6 },
-
-                # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
-                #       Set as a np.array of shape defined by leds => rows/cols above
-                'led_ids': np.array([
-                                    [ 40,  41,  42,  43,  44,  45],
-                                    [ 46,  47,  48,  49,  50,  51],
-                                    [ 52,  53,  54,  55,  56,  57],
-                                    [ 58,  59,  60,  61,  62,  63],
-                                    [ 64,  65,  66,  67,  68,  69],
-                                    ]),
-
-                # Simulated: Dimensions of this component in the simulated model
-                'bbox': (400,200, 600,400),
+                # 'bbox': (0,200, 200,400),
+                'bbox': (0,600, 600,1000),                
                 },
 
             'Top': {
                 # Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 2, 'cols': 3 },
+                'leds': { 'rows': 3, 'cols': 3 },
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
                 'led_ids': np.array([
-                                    [ 30,  31,  32],
-                                    [ 33,  34,  35],
+                                    [100, 101, 102],
+                                    [103, 104, 105],
+                                    [106, 107, 108]
                                     ]),
 
                 # Simulated: Dimensions of this component in the simulated model
-                'bbox': (200,0, 400,200),
-                }
+                'bbox': (600,0, 1000,600),
+                },
+
+            'Right': {
+                # Arrangement of LEDs in this model (real or simulated)
+                'leds': { 'rows': 4, 'cols': 20 },
+
+                # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
+                #       Set as a np.array of shape defined by leds => rows/cols above
+                'led_ids': np.array([
+                                    [120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139],
+                                    [140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159],
+                                    [160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179],
+                                    [180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199]
+                                    ]),
+
+                # Simulated: Dimensions of this component in the simulated model
+                'bbox': (1000,600, 1600,1000),
+                },
         }
 
         # Model Scenarios
@@ -109,7 +109,8 @@ class Model():
         Draw the main components of the model: sides, top
         """
         # Create background enclosure for the model
-        self.model = Image.new( "RGB", (600,400), color=(10,10,10) )
+        MAX_IMAGE_SIZE = (1600,1000)
+        self.model = Image.new( "RGB", MAX_IMAGE_SIZE, color=(10,10,10) )
 
         # Prepare to draw objects
         model_draw = ImageDraw.Draw(self.model)
@@ -348,22 +349,28 @@ class Model():
     # **********************************************************************************************
     def _pattern_come_in( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
 
+        # Initialize brightness return value
         b = None
+
+        # Bright has a fixed base brightness level + adjusted brightness that varies
+        b_base = 0.1
+        b_adj = 0.9
+
+        # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
+        # * Respiration rate at rest (adult normal): 12 to 20 breaths per minute => 3 to 5 seconds per breath
+        # * Respiration rate during exercise (adult normal): 40-60 breaths per minute => 1 to 1.5 seconds per breath
 
         if c=='Right':
             # Cyclic brightness based upon column and timestep
-            b = np.abs( np.sin( np.pi * ( (c_ix + t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
+            b = b_base + b_adj * np.abs( np.sin( np.pi * ( (c_ix + t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
 
         elif c=='Top':
             # Cyclic brightness based upon column and timestep
-            b = np.abs( np.sin( np.pi * t/16 ) )
+            b = b_base + b_adj * np.abs( np.sin( np.pi * t/16 ) )
 
         elif c=='Left':
             # Cyclic brightness based upon column and timestep
-            b = np.abs( np.sin( np.pi * ( (c_ix - t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
-
-            # Low to High Brightness based upon row and column
-            # b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+            b = b_base + b_adj * np.abs( np.sin( np.pi * ( (c_ix - t)/(n_c-1) ) ) ) if n_c > 1 else 1.0
 
         return b
 
