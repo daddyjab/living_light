@@ -1,3 +1,4 @@
+from multiprocessing import cpu_count
 import numpy as np
 import logging
 from PIL import Image, ImageDraw, ImageColor
@@ -165,7 +166,7 @@ class Model():
     # within Color Profile to LED Colors
     # ***********************************************
 
-    def light_profile( self, source=None, temp=None ):
+    def get_color_profile( self, source=None, temp=None ):
         """
         Set RGB color values based upon light source or light temperature
 
@@ -278,7 +279,7 @@ class Model():
         pass
 
 
-    def update_led_pattern(self, timestep:int=None, distance:tuple=None, proximity:dict=None ):
+    def update_led_pattern(self, timestep:int=None, distance:tuple=None, proximity:dict=None, override_cp:str=None, override_pat:str=None ):
         """
         Within the main loop, update the LED pattern that is currently
         running based upon the timestep that is specified
@@ -290,15 +291,26 @@ class Model():
         * Proximity of objects to Entrance or Exit
         """
 
-        color_profile = self.MODEL_SCENARIO_CONFIG[self.scenario]['color_profile']
-        led_pattern = self.MODEL_SCENARIO_CONFIG[self.scenario]['led_pattern']
+        # Use the Color Profile specified in the Light Scenario,
+        # unless an override Color Profile has been provided
+        if override_cp:
+            color_profile = override_cp
+        else:
+            color_profile = self.MODEL_SCENARIO_CONFIG[self.scenario]['color_profile']
+
+        # Use the LED Pattern specified in the Light Scenario,
+        # unless an override LED Pattern has been provided
+        if override_pat:
+            led_pattern = override_pat
+        else:
+            led_pattern = self.MODEL_SCENARIO_CONFIG[self.scenario]['led_pattern']
 
         # Functions that implement LED patterns 
         BRIGHTNESS_PATTERN_FUNCTION = {
             'Come In': self._pattern_come_in,
             'Range': self._pattern_range,
             'Off': self._pattern_off,
-            'On': self._pattern_off,
+            'On': self._pattern_on,
         }
 
         # Increment the LED pattern and return an array of RGB color strings for each Model component
