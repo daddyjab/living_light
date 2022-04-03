@@ -127,11 +127,15 @@ while True:
 
         # If a keys were pressed during the main loop, then display them.
         if retained_pressed_keys:
-            print("Pressed Keys: ", retained_pressed_keys)
+            logging.info("**** Pressed Keys: ", retained_pressed_keys)
+
+            # **************************************************************
+            # Keypad selection to exit this program
+            # **************************************************************
 
             # If 1234 are all pressed, then exit this program.
             if retained_pressed_keys == [1,2,3,4]:
-                logging.info("All Keys Pressed: Ending Lighting Controller Program -- Goodbye!")
+                logging.info("**** All Keys Pressed (1+2+3+4): Ending Lighting Controller Program -- Goodbye!")
 
                 # Turn off the LED Strip
                 lc.init_model_scenario('Off')
@@ -139,41 +143,66 @@ while True:
                 # Exit this program
                 exit()
 
-            # If *only* 3 and 4 are pressed, then perform the diagnostic function
+            # **************************************************************
+            # Keypad selections for diagnostic modes
+            # **************************************************************
+
+            # If *only* 3 and 4 are pressed, then perform a diagnostic function: Highlight every 10th LED
             elif retained_pressed_keys == [3,4]:
-                logging.info("Keys 3 and 4 Pressed: Launching LED Diagnostics")
+                logging.info("**** Keys 3 and 4 Pressed: Highlighting every 10th LED on the full LED Strip")
 
                 # Turn off the LED Strip
-                lc.init_model_scenario('Diagnostics')
+                lc.highlight_every_tenth_led()
+                _ = input("=> Press ENTER to continue. ")
 
 
-            # If *only* 2 and 4 are pressed, then perform the diagnostic function
+            # If *only* 2 and 4 are pressed, then perform the diagnostic function: Brightness Range
             elif retained_pressed_keys == [2,4]:
-                logging.info("Keys 2 and 4 Pressed: Launching Distance Calibration")
+                logging.info("**** Keys 2 and 4 Pressed: Showing the full range of brightness using configured LEDs")
 
-                # Turn off the LED Strip
-                lc.init_model_scenario('Off')
+                # Change scenario
+                lc.init_model_scenario('Brightness Range')
+
+
+            # If *only* 1 and 4 are pressed, then perform the diagnostic function: Calibrate Distance
+            elif retained_pressed_keys == [1,4]:
+                logging.info("**** Keys 1 and 4 Pressed: Launching Distance Calibration Procedure")
+
+                # Change scenario
+                lc.init_model_scenario('Calibrate Distance')
 
                 # Launch Distance Calibration
                 lc.baseline_distance, lc.calibrated_positions = lc._calibrate_distance_sensors()
+            
+                # Calculate distance normalizing polynomials, such that distance is normalized
+                # the calibrated positions for Entrance to Exit are normalized to 1.0 to 0.0
+                lc.normalizing_polys = lc._calc_normalizing_polys()
+
+                # Change scenario
+                lc.init_model_scenario('Off')
+
+
+            # **************************************************************
+            # Keypad selections for normal operating scenarios
+            # **************************************************************
 
             # If 3 was pressed, set model scenario to "Energy"
             elif 3 in retained_pressed_keys:
-                logging.info("Key 3 Pressed: Setting model to scenario 'Energy'")
+                logging.info("**** Key 3 Pressed: Setting model to scenario 'Energy'")
 
                 # Change to 'Energy' scenario
                 lc.init_model_scenario('Energy')
 
             # If 2 was pressed, set model scenario to "Standard"
             elif 2 in retained_pressed_keys:
-                logging.info("Key 2 Pressed: Setting model to scenario 'Standard'")
+                logging.info("**** Key 2 Pressed: Setting model to scenario 'Standard'")
 
                 # Change to 'Standard' scenario
                 lc.init_model_scenario('Standard')
 
             # If 1 was pressed, set model scenario to "Idle"
             elif 1 in retained_pressed_keys:
-                logging.info("Key 1 Pressed: Setting model to scenario 'Idle'")
+                logging.info("**** Key 1 Pressed: Setting model to scenario 'Idle'")
 
                 # Change to 'Idle' scenario
                 lc.init_model_scenario('Idle')
@@ -181,22 +210,31 @@ while True:
             # Clear out the retained pressed keys for next time
             retained_pressed_keys = None
 
+
         # ****************************************************************
         # Update distance measurements
         # ****************************************************************
+        
+        # Get the current distance (in centimeters)
         dist = lc.get_distance()
+
         try:
-            logging.info(f"Left Distance: {dist[0]}, Right Distance: {dist[1]}")
-        except:
+            # Normalize the distance
+            n_dist = lc.normalize_distance( dist )
+            logging.info(f"Left Distance: {dist[0]} [Normalized: {n_dist[0]}], Right Distance: {dist[1]} [Normalized: {n_dist[1]}]")
+
+        except TypeError:
             pass
 
         # ****************************************************************
         # Update proximity indicators
         # ****************************************************************
         is_nearby = lc.is_object_nearby()
+
         try:
             logging.info(f"Object Near Entrance: {is_nearby['Entrance']}, Object Near Exit: {is_nearby['Exit']}")
-        except:
+
+        except (KeyError, TypeError):
             pass
 
 
@@ -205,8 +243,10 @@ while True:
         # ****************************************************************
         try:
             loop_avg = loop_elapsed_time['sum'] / ( loop_elapsed_time['count'] )
+
         except DivisionByZero:
             loop_avg = 0.0
+
         logging.info(f"Loop Elapsed Time: Avg: {1000.0*loop_avg:.3f} ms, Min: {1000.0*loop_elapsed_time['min']:.3f} ms, Max: {1000.0*loop_elapsed_time['max']:.3f} ms, Loops: {loop_elapsed_time['count']} iterations")
 
 

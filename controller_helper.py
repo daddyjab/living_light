@@ -4,6 +4,9 @@ import logging
 # Standard dependencies
 import time, csv, os
 
+import numpy as np
+from numpy.polynomial import Polynomial
+
 # Device related dependencies
 import digitalio
 import board
@@ -39,14 +42,14 @@ class LightingController(Model):
         # Initialize the LED Strip
         self.led_strip = None
         logging.info("Initializing the LED Strip")
-        self.pixels = self._init_led_strip(brightness=led_brightness)
+        self._init_led_strip(brightness=led_brightness)
 
         # Initialize the Distance Sensors
         self.GPIO_ULTRASONIC = None
         self.CALIBRATION_FILEN = None
         self.baseline_distance = None
         self.calibrated_positions = None        
-        self.normalizing_factors = None
+        self.normalizing_polys = None
         logging.info("Initializing the Distance Sensors")
         self._init_distance_sensors(run_distance_calib=run_distance_calibration)
 
@@ -81,14 +84,29 @@ class LightingController(Model):
         # Turn off all LEDs, just in case some were left off
         self.all_leds_off()
 
-        return self.led_strip
-
 
     def all_leds_off(self):
         """
         Turn all LEDs off
         """
         self.led_strip.fill( (0,0,0) )
+
+    def all_leds_on(self):
+        """
+        Turn all LEDs off
+        """
+        self.led_strip.fill( (255,255,255) )
+
+    def highlight_every_tenth_led(self):
+        """
+        Make every ten LEDs bright (to facilitate counting, finding a particular LED ID, etc.)
+        """
+
+        # Turn all LEDs to partial brightness
+        self.led_strip.fill( (64,64,64) )
+
+        # Turn every 10th LED to full brightness
+        self.led_strip[::10] = [ (255,255,255) for i in range(len(self.led_strip[::10])) ]        
 
 
     # Overload this function to replace the simulated LED inteface
@@ -166,15 +184,10 @@ class LightingController(Model):
         # and if the calibration file exists
         if (self.calibrated_positions is None) and os.path.exists( self.CALIBRATION_FILEN ):
             self.baseline_distance, self.calibrated_positions = self._load_calibration_parameters()
-
-        # Calculate distance normalizing factors, such that for
-        # Normalized Depth distance:
-        # * > 1.0: No object is present
-        # * 1.0: Object is at the Entrance
-        # * 0.5: Object is at Midway
-        # * 0.0: Object is at the Exit
-        # * < 0.0: Object is beyond the Exit
-        self.normalizing_factors = self._calc_normalizing_factors()
+            
+        # Calculate distance normalizing polynomials, such that distance is normalized
+        # the calibrated positions for Entrance to Exit are normalized to 1.0 to 0.0
+        self.normalizing_polys = self._calc_normalizing_polys()
 
 
     def get_distance(self):
@@ -346,8 +359,56 @@ class LightingController(Model):
         return baseline_dist, calib_pos
 
 
-    def _calc_normalizing_factors( self ):
-        pass
+    def _calc_normalizing_polys( self ) -> tuple:
+        """
+        Fit the calibrated positions data to a polynomial (linear) for distance,
+        with a separate equations for the Left (0) and Right (1) sensors.
+        This will allow distance from Entrance to Midway to Exit to be mapped to a value 1.0 to 0.5 to 0.0 (approximately).
+        """
+
+        # Use Calibrated Position measurements that are more in line with each distance sensor:
+        # * Left sensor (0):  Use Left and Center calibrated position measurements
+        # * Right sensor (1), Use Right and Center calibrated position measurements
+        SIDES_FOR_SENSORS = { 0: [ 'Left', 'Center' ], 1: [ 'Right', 'Center' ] }
+
+        poly = {}
+        for sensor in [0, 1]:
+
+            # Build a set of x,y points to be fitted for this sensor
+            x_sensor = []
+            y_sensor = []
+
+            for side in SIDES_FOR_SENSORS[sensor]:
+                # Get the set of x,y points for this side for this sensor
+                x = [ self.calibrated_positions[depth][side][sensor] for depth in ['Entrance', 'Midway', 'Exit'] ]
+                y = [ 1.0, 0.5, 0.0 ]
+                x_sensor.extend(x)
+                y_sensor.extend(y)
+
+            # Find the maximum distance measured at the Entrance and use it as the upper value for the input domain
+            domain_max_distance = max( self.calibrated_positions['Entrance']['Center'][0], self.calibrated_positions['Entrance']['Center'][1] )
+
+            # Find the coefficients of a linear equation that best fit the x,y for this sensor
+            poly[sensor] = Polynomial.fit( x_sensor, y_sensor, deg=1, domain=[0.0, domain_max_distance], window=[0.0, 1.0] )
+
+        return poly
+        
+
+    def normalize_distance( self, d:tuple=None ) -> tuple:
+        """
+        Generate normalized distance by applying the linear equation
+        fitted to the calibrated positions measurements
+        """
+        # Normalized distance for distance sensors Left (0) and Right (1)
+        nd_left, nd_right = (None, None)
+        try:
+            nd_left = self.normalizing_polys[0].convert().coef[0] + self.normalizing_polys[0].convert().coef[1] * d[0]
+            nd_right = self.normalizing_polys[1].convert().coef[0] + self.normalizing_polys[1].convert().coef[1] * d[1]
+
+        except (TypeError, AttributeError):
+            nd_left, nd_right = (None, None)
+
+        return (nd_left, nd_right)
 
 
 

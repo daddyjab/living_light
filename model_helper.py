@@ -72,7 +72,8 @@ class Model():
             'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'Come In' },
             'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'Come In' },
             'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Come In' },
-            'Diagnostics': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' },
+            'Brightness Range': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' },
+            'Calibrate Distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'On' },
             'Off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Off' },
         }
 
@@ -147,10 +148,9 @@ class Model():
             n_rows = self.MODEL_CONFIG[c]['leds']['rows']
 
             # Determine the number of pixels per LED,
-            # Adding 2 to the count so that LEDs will not be placed on an edge
+            # Adding 1 to the count so that LEDs will not be placed on an edge
             pix_per_col = w // (n_cols + 1)
             pix_per_row = h // (n_rows + 1)
-            # print(c, bbox, w, h, n_cols, n_rows, pix_per_col, pix_per_row)
 
             # Draw the LEDs, starting with index 1 (to avoid an edge)
             for col in range(1,n_cols+1):
@@ -445,7 +445,6 @@ class Model():
             b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
 
         return b
-
 
     def _pattern_off( self, c, r_ix, c_ix, n_r, n_c, t=0, dist:tuple=None, prox:dict=None ):
         """
