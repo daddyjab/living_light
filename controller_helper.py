@@ -46,6 +46,7 @@ class LightingController(Model):
         self.CALIBRATION_FILEN = None
         self.baseline_distance = None
         self.calibrated_positions = None        
+        self.normalizing_factors = None
         logging.info("Initializing the Distance Sensors")
         self._init_distance_sensors(run_distance_calib=run_distance_calibration)
 
@@ -140,6 +141,13 @@ class LightingController(Model):
             GPIO.setup( self.GPIO_ULTRASONIC[unit]['trigger'], GPIO.OUT)
             GPIO.setup( self.GPIO_ULTRASONIC[unit]['echo'], GPIO.IN)
 
+        # Model inside dimensions (centimeters)
+        self.PHYSICAL_DIMENSIONS = {
+            'depth':  30.48,  # 12 inches
+            'height': 20.32,  #  8 inches
+            'width':  15.28,  #  6 inches
+        }
+
         # Set the file name of the calibration file
         self.CALIBRATION_FILEN = 'calibration_params.csv'
 
@@ -158,6 +166,15 @@ class LightingController(Model):
         # and if the calibration file exists
         if (self.calibrated_positions is None) and os.path.exists( self.CALIBRATION_FILEN ):
             self.baseline_distance, self.calibrated_positions = self._load_calibration_parameters()
+
+        # Calculate distance normalizing factors, such that for
+        # Normalized Depth distance:
+        # * > 1.0: No object is present
+        # * 1.0: Object is at the Entrance
+        # * 0.5: Object is at Midway
+        # * 0.0: Object is at the Exit
+        # * < 0.0: Object is beyond the Exit
+        self.normalizing_factors = self._calc_normalizing_factors()
 
 
     def get_distance(self):
@@ -289,7 +306,7 @@ class LightingController(Model):
         """
         
         logging.info(f"Saving baseline distance and calibrated parameters: {self.CALIBRATION_FILEN}")
-        with open(self.CALIBRATION_FILEN, mode='w') as c_file:
+        with open(self.CALIBRATION_FILEN, mode='w', newline='') as c_file:
             c_writer = csv.writer( c_file, delimiter=',')
 
             # Save baseline distance values
@@ -309,22 +326,28 @@ class LightingController(Model):
         """
         
         logging.info(f"Loading baseline distance and calibrated parameters: {self.CALIBRATION_FILEN}")
-        with open(self.CALIBRATION_FILEN, mode='r') as c_file:
+        with open(self.CALIBRATION_FILEN, mode='r', newline='') as c_file:
             c_reader = csv.reader( c_file, delimiter=',')
 
             # Load baseline distance values
-            baseline_dist = next(c_reader)
+            dist_left, dist_right = next(c_reader)
+            baseline_dist = float(dist_left), float(dist_right)                    
 
             # Save calibrated positions values
             calib_pos = {}
             for depth in ['Entrance', 'Midway', 'Exit']:
                 calib_pos[depth] = {}
                 for side in ['Right', 'Center', 'Left']:
-                    calib_pos[depth][side] = next(c_reader)
+                    dist_left, dist_right = next(c_reader)
+                    calib_pos[depth][side] = float(dist_left), float(dist_right)                    
 
         logging.info(f"Load completed.")
 
         return baseline_dist, calib_pos
+
+
+    def _calc_normalizing_factors( self ):
+        pass
 
 
 
