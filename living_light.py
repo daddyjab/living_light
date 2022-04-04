@@ -86,7 +86,7 @@ while True:
         elapsed_time = this_time - prev_time
         loop_elapsed_time['min'] = min( loop_elapsed_time['min'], elapsed_time)
         loop_elapsed_time['max'] = max( loop_elapsed_time['max'], elapsed_time)
-        loop_elapsed_time['sum'] = sum( loop_elapsed_time['sum'], elapsed_time)
+        loop_elapsed_time['sum'] += elapsed_time
         loop_elapsed_time['count'] += 1
 
     # ****************************************************************
