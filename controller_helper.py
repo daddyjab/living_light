@@ -103,7 +103,7 @@ class LightingController(Model):
         """
 
         # Turn all LEDs to partial brightness
-        self.led_strip.fill( (64,64,64) )
+        self.led_strip.fill( (32,32,32) )
 
         # Turn every 10th LED to full brightness
         self.led_strip[::10] = [ (255,255,255) for i in range(len(self.led_strip[::10])) ]        
