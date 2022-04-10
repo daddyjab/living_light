@@ -151,8 +151,8 @@ class LightingController(Model):
 
         # Configure the Raspberry Pi GPIO ports used by the Ultrasonic sensors
         self.GPIO_ULTRASONIC = {
-            'Right': { 'trigger': 17, 'echo': 27 },
-            'Left': { 'trigger': 16, 'echo': 25 }
+            'Right': { 'trigger': 17, 'echo': 27, 'working': True },
+            'Left': { 'trigger': 16, 'echo': 25, 'working': True }
         }
 
         # Set the trigger port to output and echo port to input
@@ -207,6 +207,11 @@ class LightingController(Model):
             * https://thepihut.com/blogs/raspberry-pi-tutorials/hc-sr04-ultrasonic-range-sensor-on-the-raspberry-pi
             """
 
+            # If this sensor has already been determined to be not working
+            # then return distance of None
+            if self.GPIO_ULTRASONIC[unit]['working'] == False:
+                return None
+
             # Speed of sound in centimeters/sec
             SPEED_SOUND_CM = 34300.0
 
@@ -223,15 +228,42 @@ class LightingController(Model):
             start_time = time.time()
             stop_time = time.time()
 
+            # If a sensor request takes longer than the TIMEOUT_TARGET (5.0 sec),
+            # then mark the sensor as being not working
+            TIMEOUT_TARGET = 5.0
+
             # Save Start Time
+            timeout_time = time.time()
             while GPIO.input(self.GPIO_ULTRASONIC[unit]['echo']) == 0:
                 start_time = time.time()
+
+                # Check if this operation is taking too long
+                if start_time - timeout_time > TIMEOUT_TARGET:
+
+                    # Sensor request timed out!
+                    # Mark this sensor as not working
+                    self.GPIO_ULTRASONIC[unit]['working'] = False
+
+                    # Return a distance value of None
+                    return None
                 
                 
             # Save Stop Time
+            timeout_time = time.time()
             while GPIO.input(self.GPIO_ULTRASONIC[unit]['echo']) == 1:
                 stop_time = time.time()
-                
+
+                # Check if this operation is taking too long
+                if stop_time - timeout_time > TIMEOUT_TARGET:
+
+                    # Sensor request timed out!
+                    # Mark this sensor as not working
+                    self.GPIO_ULTRASONIC[unit]['working'] = False
+
+                    # Return a distance value of None
+                    return None
+
+
             # Elapsed time
             time_elapsed = stop_time - start_time
             
@@ -249,7 +281,8 @@ class LightingController(Model):
 
             # Pause for a short period (1 microsecond) before the next measurement,
             # just in case there are reverberations of sound that need to dissipate
-            time.sleep(1e-6)
+            # Revised: No additional delay is needed
+            # time.sleep(1e-6)
 
         # Populate the results in a tuple
         return ( dist['Left'], dist['Right'] )
@@ -401,13 +434,20 @@ class LightingController(Model):
         fitted to the calibrated positions measurements
         """
         # Normalized distance for distance sensors Left (0) and Right (1)
+        # NOTE: If the sensor is not working, one or both values in the tuple d
+        #       may be None
         nd_left, nd_right = (None, None)
         try:
             nd_left = self.normalizing_polys[0].convert().coef[0] + self.normalizing_polys[0].convert().coef[1] * d[0]
+
+        except (TypeError, AttributeError):
+            nd_left = None
+
+        try:
             nd_right = self.normalizing_polys[1].convert().coef[0] + self.normalizing_polys[1].convert().coef[1] * d[1]
 
         except (TypeError, AttributeError):
-            nd_left, nd_right = (None, None)
+            nd_right = None
 
         return (nd_left, nd_right)
 
