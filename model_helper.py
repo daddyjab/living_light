@@ -17,15 +17,21 @@ class Model():
         self.MODEL_CONFIG = {
             'Left': {
                 # Real and Simulated: Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 4, 'cols': 20 },
+                'leds': { 'rows': 10, 'cols': 9 },
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
                 'led_ids': np.array([
-                                    [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-                                    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
-                                    [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
-                                    [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+                                    [ 122, 101, 99, 78, 75, 55, 52, 32, 28 ],
+                                    [ 121, 102, 98, 79, 74, 56, 51, 33, 27 ],
+                                    [ 120, 103, 97, 80, 73, 57, 50, 34, 26 ],
+                                    [ 119, 104, 96, 81, 72, 58, 49, 35, 25 ],
+                                    [ 118, 105, 95, 82, 71, 59, 48, 36, 24 ],
+                                    [ 117, 106, 94, 83, 70, 60, 47, 37, 23 ],
+                                    [ 116, 107, 93, 84, 69, 61, 46, 38, 22 ],
+                                    [ 115, 108, 92, 85, 68, 62, 45, 39, 21 ],
+                                    [ 114, 109, 91, 86, 67, 63, 44, 40, 20 ],
+                                    [ 113, 110, 90, 87, 66, None, 43, None, 19 ]
                                     ]),
 
                 # Simulated: Dimensions of this component in the simulated model
@@ -35,14 +41,14 @@ class Model():
 
             'Top': {
                 # Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 3, 'cols': 3 },
+                'leds': { 'rows': 3, 'cols': 17 },
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
                 'led_ids': np.array([
-                                    [100, 101, 102],
-                                    [103, 104, 105],
-                                    [106, 107, 108]
+                                    [ 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, None ],
+                                    [ 168, 167, 166, 165, 164, 163, 162, 161, 160, 159, 158, 157, 156, 155, 154, 153, None ],
+                                    [ 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188 ]
                                     ]),
 
                 # Simulated: Dimensions of this component in the simulated model
@@ -51,15 +57,21 @@ class Model():
 
             'Right': {
                 # Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 4, 'cols': 20 },
+                'leds': { 'rows': 10, 'cols': 9 },
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
                 'led_ids': np.array([
-                                    [120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139],
-                                    [140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159],
-                                    [160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179],
-                                    [180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199]
+                                    [ None, None, 278, 258, None, 234, 230, 210, 207 ],
+                                    [ None, None, 277, 259, 254, 235, 229, 211, 206 ],
+                                    [ None, None, 276, 260, 253, 236, 228, 212, 205 ],
+                                    [ None, None, 275, 261, 252, 237, 227, 213, 204 ],
+                                    [ None, None, 274, 262, 251, 238, 226, 214, 203 ],
+                                    [ None, None, 273, 263, 250, 239, 225, 215, 202 ],
+                                    [ None, None, 272, 264, 249, 240, 224, 216, 201 ],
+                                    [ None, None, 271, 265, 248, 241, 223, 217, 200 ],
+                                    [ None, None, 270, 266, 247, 242, 222, 218, 199 ],
+                                    [ None, None, 269, None, 246, 243, 221, None, 198 ]
                                     ]),
 
                 # Simulated: Dimensions of this component in the simulated model
@@ -69,12 +81,23 @@ class Model():
 
         # Model Scenarios
         self.MODEL_SCENARIO_CONFIG = {
+
+            # Normal Scenarios
             'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'Come In' },
             'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'Come In' },
             'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Come In' },
-            'Brightness Range': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' },
-            'Calibrate Distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'On' },
-            'Off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Off' },
+
+            # Diagnostic Scenarios (all performed with brightest color profile)
+            'diag_calibrate_distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'On' },
+            'diag_come_in': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Come In' },
+            'diag_ellipse': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Ellipse' },
+            'diag_range': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' },
+            'diag_all_on': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'On' },
+            'diag_all_off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Off' },
+
+            # Obsolete Scenarios
+            # 'Brightness Range': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Range' },
+            # 'Off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Off' },
         }
 
         # Current Model scenario

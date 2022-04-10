@@ -133,8 +133,9 @@ class LightingController(Model):
                     # Map input coordinates of a LED to a physical LED index for this component
                     led_id = self.MODEL_CONFIG[c]['led_ids'][row][col]
 
-                    # Set the LED using the specified color
-                    self.led_strip[led_id] = rgb_string_to_tuple( led_colors[c][row][col] )
+                    # If an actual LED ID is populated, then set the LED using the specified color
+                    if led_id:
+                        self.led_strip[led_id] = rgb_string_to_tuple( led_colors[c][row][col] )
 
 
     # *************************************************

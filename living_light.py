@@ -16,42 +16,47 @@ from model_helper import *
 # which initializes the controller and all of its sensors
 lc = LightingController( led_brightness=0.5, run_distance_calibration=False )
 
+# Turn all LEDs off, just in case some had been left in a bad state before.
+lc.all_leds_off()
 
-# KLUDGE: Show a static test pattern until true LED processing is in place
-# Get the LED RGB values for the test pattern
-led_colors = lc.led_test_pattern('Range', 'Direct Sunlight' )
+# Set the lighting scenario to a normal scenario
+lc.init_model_scenario('Idle')
 
-# Display the test pattern on the LED Strip
-lc.draw_model_leds( led_colors)
+# # KLUDGE: Show a static test pattern until true LED processing is in place
+# # Get the LED RGB values for the test pattern
+# led_colors = lc.led_test_pattern('Range', 'Direct Sunlight' )
+
+# # Display the test pattern on the LED Strip
+# lc.draw_model_leds( led_colors)
 
 
 # MAIN PROCESSING LOOP
 # Perform an infinite loop of processing, and during each iteration:
-# 1. Increment an iteration counter
 #
-# 2. When the iteration counter reaches a target value, reset the iteration counter to 0,
-#    process any command that has been requested by the user pressing keys, display any reports, etc.
+# 1. Update the LED based upon whatever scenario is currently running,
+#    the current distance measurements, and proximity information, and timing.
+#    Note: LEDs updates will be spaced in time to ensure the LED brightness
+#          changes do not occur too quickly.
+#
+# 2. After a set period of time has elapsed, process any command that has been
+#    requested by the user pressing keys, display any reports, etc.
 #
 # 3. Update the current distance measurements, which hopefully will
 #    help locate a person's location in the model. 
 #
 # 4. Update the proximity sensors to determine if a person is near the entrance or exit.
 #
-# 5. Update the LED based upon whatever scenario is currently running,
-#    the current distance measurements, and proximity information, and timing.
-#    Note: The LEDs will have their own loop of changes that adjust periodically
-#          depending upon how much time as elapsed since the LED update function
-#          been called.  So the LED changes may be programmed to run quickly or
-#          slowly as desired for each scenario and condition.
-#
-# 6. Wait a short period of time and then restart the loop.
+# 5. Optionally wait a short period of time and then restart the loop.
 
 # Time to wait on each loop: 1 millisecond
-# Revised: No loop sleep time neeed since both LED updates and Reports
+# Revised: No loop sleep time need since both LED updates and Reports
 #          now have time-based (not iteration based) thresholds
 LOOP_SLEEP_TIME = 0
 
 # Time between LED updates (sec): 0.01 sec = 10 milliseconds
+# @TODO: Metrics show current loop time
+#        * Average: 2.26 sec, Min: 0.29 sec, Max: 2.94 sec
+#        * This is too slow! Need to consider ways to speed up LED pattern update processing :(
 LED_UPDATE_TIME_SEC = 0.01
 last_led_update_time = time.time()
 led_timestep = 0
@@ -71,7 +76,8 @@ retained_pressed_keys = None
 elapsed_time = None
 prev_time = None
 this_time = None
-loop_elapsed_time = { 'last': 0, 'min': 9999999, 'max': -1, 'sum':0, 'count':0 }
+loop_elapsed_time = { 'min': None, 'max': None, 'sum':0, 'count':0 }
+led_update_elapsed_time = { 'min': None, 'max': None, 'sum':0, 'count':0 }
 
 # Main Loop
 while True:
@@ -84,8 +90,8 @@ while True:
     this_time = time.time()
     if prev_time is not None:
         elapsed_time = this_time - prev_time
-        loop_elapsed_time['min'] = min( loop_elapsed_time['min'], elapsed_time)
-        loop_elapsed_time['max'] = max( loop_elapsed_time['max'], elapsed_time)
+        loop_elapsed_time['min'] = elapsed_time if loop_elapsed_time['min'] is None else min( loop_elapsed_time['min'], elapsed_time)
+        loop_elapsed_time['max'] = elapsed_time if loop_elapsed_time['max'] is None else max( loop_elapsed_time['max'], elapsed_time)
         loop_elapsed_time['sum'] += elapsed_time
         loop_elapsed_time['count'] += 1
 
@@ -107,6 +113,15 @@ while True:
 
         # Update LED patterns
         lc.update_led_pattern(timestep=led_timestep, distance=dist, proximity=is_nearby )
+
+        # Track the time that was required to update the LEDs
+        led_update_complete_time = time.time()
+        led_elapsed_time = led_update_complete_time - last_led_update_time
+        led_update_elapsed_time['min'] = led_elapsed_time if led_update_elapsed_time['min'] is None else min( led_update_elapsed_time['min'], led_elapsed_time)
+        led_update_elapsed_time['max'] = led_elapsed_time if led_update_elapsed_time['max'] is None else max( led_update_elapsed_time['max'], led_elapsed_time)
+        led_update_elapsed_time['sum'] += led_elapsed_time
+        led_update_elapsed_time['count'] += 1        
+
 
     # ****************************************************************
     # Save any pressed keys and retain them for later use durin
@@ -138,7 +153,7 @@ while True:
                 logging.info("**** All Keys Pressed (1+2+3+4): Ending Lighting Controller Program -- Goodbye!")
 
                 # Turn off the LED Strip
-                lc.init_model_scenario('Off')
+                lc.all_leds_off()
 
                 # Exit this program
                 exit()
@@ -158,18 +173,30 @@ while True:
 
             # If *only* 2 and 4 are pressed, then perform the diagnostic function: Brightness Range
             elif retained_pressed_keys == [2,4]:
-                logging.info("**** Keys 2 and 4 Pressed: Showing the full range of brightness using configured LEDs")
+                logging.info("**** Keys 2 and 4 Pressed: Select a Normal or Diagnostic Lighting Scenario by Name")
 
-                # Change scenario
-                lc.init_model_scenario('Brightness Range')
+                pat_choice = 'x'
+                while pat_choice != '':
+                    normal_choices_text = ", ".join( sorted( [ c for c in lc.MODEL_SCENARIO_CONFIG.keys() if 'diag_' not in c ] ) )
+                    diag_choices_text = ", ".join( sorted( [ c for c in lc.MODEL_SCENARIO_CONFIG.keys() if 'diag_' in c ] ) )
+                    print("\nNormal Scenario Choices: " + normal_choices_text)
+                    print("Diagnostic Scenario Choices: " + diag_choices_text)
+                    pat_choice = input("=> Input a Scenario and press ENTER (or ENTER only to exit): ")
+                    if pat_choice in lc.MODEL_SCENARIO_CONFIG:
+        
+                        # Change the scenario and return to the main loop
+                        # so that the LED patterns will run
+                        logging.info(f"Starting Light Scenario: {pat_choice}")
+                        lc.init_model_scenario(pat_choice)
+                        break
 
 
             # If *only* 1 and 4 are pressed, then perform the diagnostic function: Calibrate Distance
             elif retained_pressed_keys == [1,4]:
                 logging.info("**** Keys 1 and 4 Pressed: Launching Distance Calibration Procedure")
 
-                # Change scenario
-                lc.init_model_scenario('Calibrate Distance')
+                # Change lighting scenario to high brightness during calibration
+                lc.init_model_scenario('diagcalibratedistance')
 
                 # Launch Distance Calibration
                 lc.baseline_distance, lc.calibrated_positions = lc._calibrate_distance_sensors()
@@ -178,8 +205,8 @@ while True:
                 # the calibrated positions for Entrance to Exit are normalized to 1.0 to 0.0
                 lc.normalizing_polys = lc._calc_normalizing_polys()
 
-                # Change scenario
-                lc.init_model_scenario('Off')
+                # Change lighting scenario back to a normal scenario
+                lc.init_model_scenario('Idle')
 
 
             # **************************************************************
@@ -241,13 +268,11 @@ while True:
         # ****************************************************************
         # DEBUG: Display loop metrics
         # ****************************************************************
-        try:
-            loop_avg = loop_elapsed_time['sum'] / ( loop_elapsed_time['count'] )
-
-        except DivisionByZero:
-            loop_avg = 0.0
-
+        loop_avg = loop_elapsed_time['sum'] / ( loop_elapsed_time['count'] ) if loop_elapsed_time['count'] > 0 else 0.0
         logging.info(f"Loop Elapsed Time: Avg: {1000.0*loop_avg:.3f} ms, Min: {1000.0*loop_elapsed_time['min']:.3f} ms, Max: {1000.0*loop_elapsed_time['max']:.3f} ms, Loops: {loop_elapsed_time['count']} iterations")
+
+        led_avg = led_update_elapsed_time['sum'] / ( led_update_elapsed_time['count'] ) if led_update_elapsed_time['count'] > 0 else 0.0
+        logging.info(f"LED Update Elapsed Time: Avg: {1000.0*led_avg:.3f} ms, Min: {1000.0*led_update_elapsed_time['min']:.3f} ms, Max: {1000.0*led_update_elapsed_time['max']:.3f} ms, Updates: {loop_elapsed_time['count']} iterations")
 
 
     # ****************************************************************
