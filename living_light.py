@@ -142,7 +142,7 @@ while True:
 
         # If a keys were pressed during the main loop, then display them.
         if retained_pressed_keys:
-            logging.info("**** Pressed Keys: ", retained_pressed_keys)
+            logging.info(f"**** Pressed Keys: {retained_pressed_keys}")
 
             # **************************************************************
             # Keypad selection to exit this program

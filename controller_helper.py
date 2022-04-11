@@ -242,6 +242,7 @@ class LightingController(Model):
 
                     # Sensor request timed out!
                     # Mark this sensor as not working
+                    logging.error(f"Ultrasonic Distance Sensor [unit='{unit}'] is not responding - marking it as not working")
                     self.GPIO_ULTRASONIC[unit]['working'] = False
 
                     # Return a distance value of None
@@ -258,6 +259,7 @@ class LightingController(Model):
 
                     # Sensor request timed out!
                     # Mark this sensor as not working
+                    logging.error(f"Ultrasonic Distance Sensor [unit='{unit}'] is not responding - marking it as not working")
                     self.GPIO_ULTRASONIC[unit]['working'] = False
 
                     # Return a distance value of None
