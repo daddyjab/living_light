@@ -78,11 +78,22 @@ class Model():
                 },
         }
 
+        # Initialize dictionaries aligned to the model configuration
+        self.brightness_vals = {}
+        self.led_array = {}
+        for c in self.MODEL_CONFIG:
+            # Array of brightness values [0.0 to 1.0] for each model component
+            self.brightness_vals[c] = np.zeros( (self.MODEL_CONFIG[c]['leds']['rows'], self.MODEL_CONFIG[c]['leds']['cols']) )        
+
+            # Array of integer-encoded RGB values (e.g., 0x7FFF00) for each model component
+            self.led_array[c] = np.zeros( (self.MODEL_CONFIG[c]['leds']['rows'], self.MODEL_CONFIG[c]['leds']['cols']), dtype='int')
+
+
         # Model Scenarios
         self.MODEL_SCENARIO_CONFIG = {
 
             # Normal Scenarios
-            'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'Come In' },
+            'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'Ellipse' },
             'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'Come In' },
             'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'Come In' },
 
@@ -119,6 +130,17 @@ class Model():
             'Clear Blue Sky': { 'temp': 20000, 'rgb': (64, 156, 255) },
         }
 
+        # Brightness Pattern Functions
+        self.BRIGHTNESS_PATTERN_FUNCTION = {
+            'Come In': self._pattern_come_in,
+            'Ellipse': self._pattern_ellipse,
+            'Range': self._pattern_range,
+            'Off': self._pattern_off,
+            'On': self._pattern_on,
+        }
+
+
+
         # Initialize but don't start the default scenario
         logging.info("Initializing Lighting Scenario: Idle")
         self.init_model_scenario( scenario='Idle' )
@@ -141,7 +163,7 @@ class Model():
         for c in self.MODEL_CONFIG:
             model_draw.rectangle( self.MODEL_CONFIG[c]['bbox'], fill=self.MODEL_INTERIOR_COLOR, outline=self.MODEL_OUTLINE_COLOR )
 
-    def draw_model_leds(self, led_colors:dict=None ):
+    def draw_model_leds(self):
         """
         Draw LEDs on the model based upon the configurations
         of the model and the color for each LED (as RGB string)
@@ -151,12 +173,18 @@ class Model():
         model_draw = ImageDraw.Draw(self.model)
 
         # LEDs
-        def _draw_led( xy, color='rgb(0,0,0)' ):
+        def _draw_led( xy, color=0x000000 ):
             """
-            Draw one LED
+            Draw one LED on simulated model
+            * xy: tuple (x,y) specifying the location to draw the LED on the simulated model
+            * color: RGB value encoded as an integer (0xRRGGBB)
             """
+            # For some reason, ImageDraw expects hex encoded color to be encoded as 0xBBGGRR,
+            # so need to extract the colors
+            rgb = rgb_int_to_tuple( color )
+            # print(xy, color, rgb)
             LED_RADIUS = 5
-            model_draw.ellipse( [ (xy[0]-LED_RADIUS,xy[1]-LED_RADIUS), (xy[0]+LED_RADIUS,xy[1]+LED_RADIUS)], fill=color, outline='rgb(0,0,0)' )
+            model_draw.ellipse( [ (xy[0]-LED_RADIUS,xy[1]-LED_RADIUS), (xy[0]+LED_RADIUS,xy[1]+LED_RADIUS)], fill=rgb, outline='rgb(0,0,0)' )
 
         for c in self.MODEL_CONFIG:
 
@@ -179,130 +207,26 @@ class Model():
                 for row in range(1, n_rows+1):
 
                     # Draw the LED using the specified color
-                    if led_colors:
-                        _draw_led( ( pix_per_col*col + bbox[0], pix_per_row*row + bbox[1] ), color=led_colors[c][row-1][col-1] )
+                    if self.led_array[c][row-1][col-1]:
+                        _draw_led( ( pix_per_col*col + bbox[0], pix_per_row*row + bbox[1] ), color=self.led_array[c][row-1][col-1] )
                     else:
                         _draw_led( ( pix_per_col*col + bbox[0], pix_per_row*row + bbox[1] ) )
 
-    # ***********************************************
-    # Methods for Mapping Brightness
-    # within Color Profile to LED Colors
-    # ***********************************************
-
-    def get_color_profile( self, source=None, temp=None ):
-        """
-        Set RGB color values based upon light source or light temperature
-
-        Reference:
-        * http://planetpixelemporium.com/tutorialpages/light.html
-        """
-
-        if (source is not None) and (temp is None):
-            return { source: self.COLOR_PROFILE[source] }
-
-        if (source is None) and (temp is not None):
-            for source in self.COLOR_PROFILE:
-                if temp == self.COLOR_PROFILE[source]['temp']:
-                    return { source: self.COLOR_PROFILE[source] }
-
-        return self.COLOR_PROFILE
-
-
-    # Create arrays representing the LED colors
-    def map_led_brightness_to_rgb_string(self, brightness_array=None, c_profile='Direct Sunlight' ) -> np.ndarray:
-        """
-        Maps an array of scalar values in the range [0.0 to 1.0] and maps it to RGB value strings
-        that are consistent with the specified or default color profile.
-        The mapping is done by:
-        1. Converting the color profile base RGB to the Hue, Lightness, Saturation (HLS) color scheme
-        2. Then adjusting only the Lightness factor proportional to the brightness value in the input array
-        3. Doing the above for each element in the array
-        """
-
-        # Create a numpy array of the same dimension as the input brightness array
-        led_array = np.full_like( brightness_array, fill_value=np.nan )
-
-        # Clip the values in the brightness array to the range [0.0 to 1.0]
-        b_array = np.clip( brightness_array, 0.0, 1.0 )
-
-        # Get the base HLS values that correspond to the color profile RGB
-        h_prof, l_prof, s_prof = rgb_int_to_hls( np.array(self.COLOR_PROFILE[c_profile]['rgb']) )
-
-        # Helper function to map 
-        def _helper_brightness_to_rgb_in_profile( b:float=None ) -> tuple:
-            # Adjust the lightness factor based upon the brightness value [0.0 to 1.0]
-            rgb = hls_to_rgb_int( (h_prof, b*l_prof, s_prof) )
-            return rgb_to_string( rgb )
-
-        # Perform a vector operation on all of the input array values
-        led_array = np.vectorize( _helper_brightness_to_rgb_in_profile )( brightness_array )
-
-        # Return the array of LED RGB string values
-        return led_array        
-
-
-    def led_test_pattern(self, pattern='Range', color_profile='Direct Sunlight' ) -> np.ndarray:
-        """
-        Create a test pattern of LED colors (dictionary of arrays containing RGB strings)
-
-        * pattern:
-            'Range': LEDs are set to display the full range of brightness for the specified color profile [default]
-            'Random': Each LED set to a random brightness for the specified color profile
-            'On': All LEDs set to maximum brightness for the specified color profile
-            'Off': All LEDs set to the minimum brightness for the specified color profile
-
-        * color_profile: Color Profile selection from self.COLOR_PROFILE [default: 'Direct Sunlight']
-        """
-        led_colors = {}
-        for c in self.MODEL_CONFIG:
-
-            # Component LED config
-            rows = self.MODEL_CONFIG[c]['leds']['rows']
-            cols = self.MODEL_CONFIG[c]['leds']['cols']
-
-            # Create an array of the proper dimensions for this component of the model
-            b_arr = np.zeros( (rows,cols) )
-
-            if pattern.lower() == 'random':
-                # Set each LED to a random brightness
-                b_arr = np.random.rand( rows, cols )
-
-            elif pattern.lower() == 'on':
-                # Set all LEDs to on / maximum brightness
-                b_arr = np.ones( (rows,cols) )
-
-            elif pattern.lower() == 'off':
-                # Set all LEDs to off / minimium brightness
-                # Note: No additional action required for this
-                pass
-
-            else:
-                # Set the LEDs to show the full range of brightness from 0.0 to 1.0 
-                for row_ix in range(rows):
-                    for col_ix in range(cols):
-                        b_arr[row_ix,col_ix] = float(row_ix)/(rows-1) if rows > 1 else 1.0
-                        b_arr[row_ix,col_ix] *= float(col_ix)/(cols-1) if cols > 1 else 1.0
-
-            # get the LED colors for this component based upon the specified Color Profile
-            led_colors[c] = self.map_led_brightness_to_rgb_string( b_arr, color_profile )
-
-        # Return a dictionary with arrays of LED colors that match the components of the Model
-        return led_colors
 
     def init_model_scenario( self, scenario:str='Idle' ):
         """
         Set the overall lighting scenario in use by the Model
         """
 
-        # Store the scenario in this object
+        # Store the current scenario type in this object
         self.scenario = scenario
 
-        # Stop any currently running scenario and prepare (but don't start) the requested scenario
-        # @TODO
+        # Other scenario-specific processing is done in real-time to provide for
+        # lighting patterns that respond to distance and other sensor data
         pass
 
 
-    def update_led_pattern(self, timestep:int=None, distance:tuple=None, proximity:dict=None, override_cp:str=None, override_pat:str=None ):
+    def update_led_pattern(self, timestep:int=None, distance:tuple=None, proximity:dict=None ):
         """
         Within the main loop, update the LED pattern that is currently
         running based upon the timestep that is specified
@@ -312,57 +236,59 @@ class Model():
         * The current timestep
         * Distance measured to objects in the Model
         * Proximity of objects to Entrance or Exit
+
+        Maps an array of scalar values in the range [0.0 to 1.0] and maps it to RGB value as integer
+        that are consistent with the specified or default color profile.
+        The mapping is done by:
+        1. Converting the color profile base RGB to the Hue, Lightness, Saturation (HLS) color scheme
+        2. Then adjusting only the Lightness factor proportional to the brightness value in the input array
+        3. Converting the resulting HLS tuple into a single integer representing a RGB value
+        4. Doing the above for each element in the array
+
         """
 
-        # Use the Color Profile specified in the Light Scenario,
-        # unless an override Color Profile has been provided
-        if override_cp:
-            color_profile = override_cp
-        else:
-            color_profile = self.MODEL_SCENARIO_CONFIG[self.scenario]['color_profile']
+        # Use the Color Profile specified in the Light Scenario
+        color_profile = self.MODEL_SCENARIO_CONFIG[self.scenario]['color_profile']
 
-        # Use the LED Pattern specified in the Light Scenario,
-        # unless an override LED Pattern has been provided
-        if override_pat:
-            led_pattern = override_pat
-        else:
-            led_pattern = self.MODEL_SCENARIO_CONFIG[self.scenario]['led_pattern']
+        # Get the base HLS values that correspond to the color profile RGB
+        h_prof, l_prof, s_prof = rgb_tuple_to_hls( np.array(self.COLOR_PROFILE[color_profile]['rgb']) )
 
-        # Functions that implement LED patterns 
-        BRIGHTNESS_PATTERN_FUNCTION = {
-            'Come In': self._pattern_come_in,
-            'Ellipse': self._pattern_ellipse,
-            'Range': self._pattern_range,
-            'Off': self._pattern_off,
-            'On': self._pattern_on,
-        }
+        # Helper function to map a brightness value to an integer-encoded RGB
+        # value based upon HLS values extracted above from the associated color profile
+        def _helper_brightness_to_rgb_in_profile( b:float=None ) -> tuple:
+            # Adjust the lightness factor based upon the brightness value [0.0 to 1.0]
+            rgb = hls_to_rgb_tuple( (h_prof, b*l_prof, s_prof) )
+            return rgb_tuple_to_int( rgb )
 
-        # Increment the LED pattern and return an array of RGB color strings for each Model component
+        # Use the LED Pattern specified in the Light Scenario
+        led_pattern = self.MODEL_SCENARIO_CONFIG[self.scenario]['led_pattern']
+
+        # Calculate a snapshot in the specified brightness pattern and
+        # return an array of RGB color strings for each Model component
         # Use a specified Bightness Pattern Function associated with the current scenario
         # to generate a set of RGB string values for each of the components of the model
-        brightness_vals = {}
-        led_colors = {}
         for c in self.MODEL_CONFIG:
 
-            # Component LED config
-            rows = self.MODEL_CONFIG[c]['leds']['rows']
-            cols = self.MODEL_CONFIG[c]['leds']['cols']
+            # Use numpy iterator to set the LED color values
+            # (about 35% performance improvement over previous nested loop approach)
+            with np.nditer( self.led_array[c], flags=['multi_index'], op_flags=['readwrite']) as la_iter:
+                for led_col in la_iter:
 
-            # Create an array of the proper dimensions for this component of the model
-            brightness_vals[c] = np.zeros( (rows,cols) )
+                    # Calculate a brightness value for this LED based upon
+                    # it's location, size of the model component,
+                    # the timestep, and the distance and proximity sensor values
+                    b_val = self.BRIGHTNESS_PATTERN_FUNCTION[led_pattern](
+                            c,
+                            la_iter.multi_index[0], la_iter.multi_index[1],
+                            self.MODEL_CONFIG[c]['leds']['rows'], self.MODEL_CONFIG[c]['leds']['cols'],
+                            timestep, distance, proximity )
 
-            # Set the LEDs to show the full range of brightness from 0.0 to 1.0 
-            for row_ix in range(rows):
-                for col_ix in range(cols):
+                    # Translate the brightness value into an integer-encoded RGB
+                    # value based upon the selected color profile
+                    led_col[...] = _helper_brightness_to_rgb_in_profile( b_val )
 
-                    # Generate brightness levels based upon a supplied function
-                    brightness_vals[c][row_ix,col_ix] = BRIGHTNESS_PATTERN_FUNCTION[led_pattern]( c, row_ix, col_ix, rows, cols, timestep, distance, proximity )
-
-            # Convert brightness levels to RGB strings
-            led_colors[c] = self.map_led_brightness_to_rgb_string( brightness_vals[c], color_profile )
-        
-        # Update the LEDs (either physical LEDs or simulated LEDs)
-        self.draw_model_leds( led_colors )
+        # Update the LEDs (using either physical LEDs or simulated LEDs)
+        self.draw_model_leds()
 
 
     # **********************************************************************************************

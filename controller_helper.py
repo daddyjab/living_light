@@ -111,31 +111,43 @@ class LightingController(Model):
 
     # Overload this function to replace the simulated LED inteface
     # with the real hardware LED interface
-    def draw_model_leds(self, led_colors:dict=None ):
+    def draw_model_leds(self):
         """
         Set LEDs the physical LED Strip based upon the configurations
         of the model and the color for each LED
         """
 
-        # The input array of colors led_colors must have the
-        # same dimensions as the model configuration that provides
-        # a mapping to the LED Strip IDs
-        #assert np.array(led_colors).shape == np.array( self.MODEL_CONFIG[c]['led_ids'] ).shape, "ERROR: led_colors shape must match self.MODEL_CONFIG[c]['led_ids'] shape"
-
         # Loop through each component of the Model (each side and the top)
         for c in self.MODEL_CONFIG:
 
-            # Use the config info to determine which LED to set
-            # for each element of input array led_colors
-            for col in range(self.MODEL_CONFIG[c]['leds']['cols']):
-                for row in range(self.MODEL_CONFIG[c]['leds']['rows']):
+            # # Use the config info to determine which LED to set
+            # # for each element of led_array
+            # for col in range(self.MODEL_CONFIG[c]['leds']['cols']):
+            #     for row in range(self.MODEL_CONFIG[c]['leds']['rows']):
+
+            #         # Map input coordinates of a LED to a physical LED index for this component
+            #         led_id = self.MODEL_CONFIG[c]['led_ids'][row][col]
+
+            #         # If an actual LED ID is populated, then set the LED using the specified color
+            #         if led_id:
+            #             self.led_strip[led_id] = rgb_int_to_tuple( self.led_array[c][row][col] )
+
+            # Use numpy iterator to set the LED color values
+            with np.nditer( self.led_array[c], flags=['multi_index'], op_flags=['readonly']) as la_iter:
+                for led_col in la_iter:
 
                     # Map input coordinates of a LED to a physical LED index for this component
-                    led_id = self.MODEL_CONFIG[c]['led_ids'][row][col]
+                    led_id = self.MODEL_CONFIG[c]['led_ids'][ la_iter.multi_index[0] ][ la_iter.multi_index[1] ]
 
                     # If an actual LED ID is populated, then set the LED using the specified color
                     if led_id:
-                        self.led_strip[led_id] = rgb_string_to_tuple( led_colors[c][row][col] )
+                        # # Color is specified as RGB tuple
+                        # self.led_strip[led_id] = rgb_int_to_tuple( led_col[...] )
+
+                        # Color is specified as integer-encoded RGB value
+                        self.led_strip[led_id] = led_col[...]
+
+
 
 
     # *************************************************
