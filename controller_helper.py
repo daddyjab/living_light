@@ -145,7 +145,7 @@ class LightingController(Model):
                         # self.led_strip[led_id] = rgb_int_to_tuple( led_col[...] )
 
                         # Color is specified as integer-encoded RGB value
-                        self.led_strip[led_id] = led_col[...]
+                        self.led_strip[led_id] = int(led_col[...])
 
 
 

@@ -98,14 +98,14 @@ while True:
 
         # Reset the LED timestep counter when it reaches over 24hrs (86,400 secs) of run time
         # NOTE: LED timestep counter is used to move LED pattern sequencies
-        if led_timestep > 1e6:
+        if led_timestep > 100000:
             led_timestep = 0
 
         # Increment the LED update timestep
         led_timestep += 1
 
         # Update LED patterns
-        lc.update_led_pattern(timestep=led_timestep, distance=dist, proximity=is_nearby )
+        lc.update_led_pattern(proximity=is_nearby, distance=dist, timestep=led_timestep )
 
         # Track the time that was required to update the LEDs
         led_update_complete_time = time.time()
@@ -117,7 +117,7 @@ while True:
 
 
     # ****************************************************************
-    # Save any pressed keys and retain them for later use durin
+    # Save any pressed keys and retain them for later use during
     # Report processing
     # ****************************************************************
     pressed_keys = lc.get_all_pressed_keys()
