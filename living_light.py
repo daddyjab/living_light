@@ -41,23 +41,6 @@ lc.init_model_scenario('Idle')
 #
 # 5. Optionally wait a short period of time and then restart the loop.
 
-# Time to wait on each loop: 1 millisecond
-# Revised: No loop sleep time need since both LED updates and Reports
-#          now have time-based (not iteration based) thresholds
-LOOP_SLEEP_TIME = 0
-
-# Time between LED updates (sec): 0.01 sec = 10 milliseconds
-# @TODO: Metrics show current loop time
-#        * Average: 2.26 sec, Min: 0.29 sec, Max: 2.94 sec
-#        * This is too slow! Need to consider ways to speed up LED pattern update processing :(
-LED_UPDATE_TIME_SEC = 0.5
-last_led_update_timestamp = time.time()
-led_timestep = 0
-
-# Iterations between reports (sec): 0.5 sec = 500 milliseconds
-REPORT_UPDATE_TIME_SEC = 0.5
-last_report_update_time = time.time()
-
 # Distance and Proximity
 dist = ( None,None )
 is_nearby = { 'Entrance':False, 'Exit':False }
@@ -65,13 +48,21 @@ is_nearby = { 'Entrance':False, 'Exit':False }
 # Keypad
 retained_pressed_keys = None
 
+# LED update interval and processing metrics
+last_led_update_timestamp = time.time()
+led_timestep = 0
+led_update_interval = { 'min': None, 'max': None, 'sum':0, 'count':0 }
+led_update_proc_time = { 'min': None, 'max': None, 'sum':0, 'count':0 }
+
+# Iterations between reports (sec): 0.5 sec = 500 milliseconds
+REPORT_UPDATE_TIME_SEC = 0.5
+last_report_update_time = time.time()
+
 # Loop metrics
 elapsed_time = None
 prev_timestamp = None
 this_timestamp = None
 loop_elapsed_time_metrics = { 'min': None, 'max': None, 'sum':0, 'count':0 }
-led_update_interval = { 'min': None, 'max': None, 'sum':0, 'count':0 }
-led_update_proc_time = { 'min': None, 'max': None, 'sum':0, 'count':0 }
 
 # Main Loop
 while True:
@@ -93,7 +84,7 @@ while True:
     # Update LEDs based upon the current Lighting Scenario
     # ****************************************************************
     led_upd_interval_time = this_timestamp - last_led_update_timestamp
-    if led_upd_interval_time > LED_UPDATE_TIME_SEC:
+    if led_upd_interval_time > lc.LED_TIMESTEP_SEC:
         
         # Track the time between LED updates
         led_update_interval['min'] = led_upd_interval_time if led_update_interval['min'] is None else min( led_update_interval['min'], led_upd_interval_time)
@@ -103,14 +94,6 @@ while True:
 
         # Update the time tracking
         last_led_update_timestamp = this_timestamp
-
-        # Reset the LED timestep counter when it reaches over 24hrs (86,400 secs) of run time
-        # NOTE: LED timestep counter is used to move LED pattern sequencies
-        if led_timestep > 100000:
-            led_timestep = 0
-
-        # Increment the LED update timestep
-        led_timestep += 1
 
         # Update LED patterns
         lc.update_led_pattern(proximity=is_nearby, distance=dist, timestep=led_timestep )
@@ -122,6 +105,14 @@ while True:
         led_update_proc_time['max'] = led_elapsed_time if led_update_proc_time['max'] is None else max( led_update_proc_time['max'], led_elapsed_time)
         led_update_proc_time['sum'] += led_elapsed_time
         led_update_proc_time['count'] += 1        
+
+        # Reset the LED timestep counter when it reaches over 24hrs (86,400 secs) of run time
+        # NOTE: LED timestep counter is used to move LED pattern sequencies
+        if led_timestep > 100000:
+            led_timestep = 0
+
+        # Increment the LED update timestep
+        led_timestep += 1
 
 
     # ****************************************************************
@@ -140,6 +131,9 @@ while True:
         
         # Update the time tracking
         last_report_update_time = this_timestamp
+
+        # Report Header
+        logging.info(f"\n**** Scenario '{lc.scenario}': Color Profile '{lc.MODEL_SCENARIO_CONFIG[lc.scenario]['color_profile']}', Pattern '{lc.MODEL_SCENARIO_CONFIG[lc.scenario]['led_pattern']}'")
 
         # If a keys were pressed during the main loop, then display them.
         if retained_pressed_keys:
@@ -176,20 +170,23 @@ while True:
             elif retained_pressed_keys == [2,4]:
                 logging.info("**** Keys 2 and 4 Pressed: Select a Normal or Diagnostic Lighting Scenario by Name")
 
-                pat_choice = 'x'
-                while pat_choice != '':
+                scen_choice = 'x'
+                while scen_choice != '':
                     normal_choices_text = ", ".join( sorted( [ c for c in lc.MODEL_SCENARIO_CONFIG.keys() if 'diag_' not in c ] ) )
-                    diag_choices_text = ", ".join( sorted( [ c for c in lc.MODEL_SCENARIO_CONFIG.keys() if 'diag_' in c ] ) )
+                    diag_cp_choices_text = ", ".join( sorted( [ c for c in lc.MODEL_SCENARIO_CONFIG.keys() if 'diag_cp_' in c ] ) )
+                    diag_choices_text = ", ".join( sorted( [ c for c in lc.MODEL_SCENARIO_CONFIG.keys() if ( ('diag_' in c) and ('diag_cp_' not in c) ) ] ) )
                     print("\nNormal Scenario Choices: " + normal_choices_text)
-                    print("Diagnostic Scenario Choices: " + diag_choices_text)
-                    pat_choice = input("=> Input a Scenario and press ENTER (or ENTER only to exit): ")
-                    if pat_choice in lc.MODEL_SCENARIO_CONFIG:
-        
+                    print("Diagnostic Color Profile Scenario Choices: " + diag_cp_choices_text)
+                    print("Other Diagnostic Scenario Choices: " + diag_choices_text)
+
+                    scen_choice = input("=> Input a Scenario and press ENTER (or ENTER only to exit): ")
+                    if scen_choice in lc.MODEL_SCENARIO_CONFIG:
                         # Change the scenario and return to the main loop
-                        # so that the LED patterns will run
-                        logging.info(f"Starting Light Scenario: {pat_choice}")
-                        lc.init_model_scenario(pat_choice)
+                        logging.info(f"Starting Scenario: {scen_choice}")
+                        lc.init_model_scenario(scen_choice)
                         break
+                    else:
+                        print(f"Selected Scenario not found: {scen_choice}")
 
 
             # If *only* 1 and 4 are pressed, then perform the diagnostic function: Calibrate Distance
@@ -280,8 +277,5 @@ while True:
 
 
     # ****************************************************************
-    # Pause processing for a short time
+    # Continue the loop
     # ****************************************************************
-
-    # Wait a bit, then the infinite loop will restart
-    time.sleep(LOOP_SLEEP_TIME)

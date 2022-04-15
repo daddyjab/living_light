@@ -31,7 +31,7 @@ class LightingController(Model):
     of the LED configurations and provides methods for LED brightness/color settings
     """
 
-    def __init__(self, led_brightness=0.5, run_distance_calibration=False ):
+    def __init__(self, led_brightness=0.1, run_distance_calibration=False ):
 
         # Run the constructor for the superclass
         super(LightingController, self).__init__()
@@ -71,7 +71,7 @@ class LightingController(Model):
     # LED Strip Methods
     # *************************************************
 
-    def _init_led_strip(self, brightness=0.5):
+    def _init_led_strip(self, brightness=0.1):
         """
         Initialize the WS2812B LED Strip
         References:
