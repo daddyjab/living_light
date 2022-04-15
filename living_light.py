@@ -50,8 +50,8 @@ LOOP_SLEEP_TIME = 0
 # @TODO: Metrics show current loop time
 #        * Average: 2.26 sec, Min: 0.29 sec, Max: 2.94 sec
 #        * This is too slow! Need to consider ways to speed up LED pattern update processing :(
-LED_UPDATE_TIME_SEC = 0.01
-last_led_update_time = time.time()
+LED_UPDATE_TIME_SEC = 0.5
+last_led_update_timestamp = time.time()
 led_timestep = 0
 
 # Iterations between reports (sec): 0.5 sec = 500 milliseconds
@@ -67,10 +67,11 @@ retained_pressed_keys = None
 
 # Loop metrics
 elapsed_time = None
-prev_time = None
-this_time = None
-loop_elapsed_time = { 'min': None, 'max': None, 'sum':0, 'count':0 }
-led_update_elapsed_time = { 'min': None, 'max': None, 'sum':0, 'count':0 }
+prev_timestamp = None
+this_timestamp = None
+loop_elapsed_time_metrics = { 'min': None, 'max': None, 'sum':0, 'count':0 }
+led_update_interval = { 'min': None, 'max': None, 'sum':0, 'count':0 }
+led_update_proc_time = { 'min': None, 'max': None, 'sum':0, 'count':0 }
 
 # Main Loop
 while True:
@@ -79,22 +80,29 @@ while True:
     # ****************************************************************
     # Loop Metrics
     # ****************************************************************
-    prev_time = this_time
-    this_time = time.time()
-    if prev_time is not None:
-        elapsed_time = this_time - prev_time
-        loop_elapsed_time['min'] = elapsed_time if loop_elapsed_time['min'] is None else min( loop_elapsed_time['min'], elapsed_time)
-        loop_elapsed_time['max'] = elapsed_time if loop_elapsed_time['max'] is None else max( loop_elapsed_time['max'], elapsed_time)
-        loop_elapsed_time['sum'] += elapsed_time
-        loop_elapsed_time['count'] += 1
+    prev_timestamp = this_timestamp
+    this_timestamp = time.time()
+    if prev_timestamp is not None:
+        elapsed_time = this_timestamp - prev_timestamp
+        loop_elapsed_time_metrics['min'] = elapsed_time if loop_elapsed_time_metrics['min'] is None else min( loop_elapsed_time_metrics['min'], elapsed_time)
+        loop_elapsed_time_metrics['max'] = elapsed_time if loop_elapsed_time_metrics['max'] is None else max( loop_elapsed_time_metrics['max'], elapsed_time)
+        loop_elapsed_time_metrics['sum'] += elapsed_time
+        loop_elapsed_time_metrics['count'] += 1
 
     # ****************************************************************
     # Update LEDs based upon the current Lighting Scenario
     # ****************************************************************
-    if this_time - last_led_update_time > LED_UPDATE_TIME_SEC:
+    led_upd_interval_time = this_timestamp - last_led_update_timestamp
+    if led_upd_interval_time > LED_UPDATE_TIME_SEC:
         
+        # Track the time between LED updates
+        led_update_interval['min'] = led_upd_interval_time if led_update_interval['min'] is None else min( led_update_interval['min'], led_upd_interval_time)
+        led_update_interval['max'] = led_upd_interval_time if led_update_interval['max'] is None else max( led_update_interval['max'], led_upd_interval_time)
+        led_update_interval['sum'] += led_upd_interval_time
+        led_update_interval['count'] += 1        
+
         # Update the time tracking
-        last_led_update_time = this_time
+        last_led_update_timestamp = this_timestamp
 
         # Reset the LED timestep counter when it reaches over 24hrs (86,400 secs) of run time
         # NOTE: LED timestep counter is used to move LED pattern sequencies
@@ -109,11 +117,11 @@ while True:
 
         # Track the time that was required to update the LEDs
         led_update_complete_time = time.time()
-        led_elapsed_time = led_update_complete_time - last_led_update_time
-        led_update_elapsed_time['min'] = led_elapsed_time if led_update_elapsed_time['min'] is None else min( led_update_elapsed_time['min'], led_elapsed_time)
-        led_update_elapsed_time['max'] = led_elapsed_time if led_update_elapsed_time['max'] is None else max( led_update_elapsed_time['max'], led_elapsed_time)
-        led_update_elapsed_time['sum'] += led_elapsed_time
-        led_update_elapsed_time['count'] += 1        
+        led_elapsed_time = led_update_complete_time - last_led_update_timestamp
+        led_update_proc_time['min'] = led_elapsed_time if led_update_proc_time['min'] is None else min( led_update_proc_time['min'], led_elapsed_time)
+        led_update_proc_time['max'] = led_elapsed_time if led_update_proc_time['max'] is None else max( led_update_proc_time['max'], led_elapsed_time)
+        led_update_proc_time['sum'] += led_elapsed_time
+        led_update_proc_time['count'] += 1        
 
 
     # ****************************************************************
@@ -128,10 +136,10 @@ while True:
     # Generate reports and check for key presses periodically
     # Update LEDs periodically (but not too often, or light patterns may not be visible)
     # ****************************************************************
-    if this_time - last_report_update_time > REPORT_UPDATE_TIME_SEC:
+    if this_timestamp - last_report_update_time > REPORT_UPDATE_TIME_SEC:
         
         # Update the time tracking
-        last_report_update_time = this_time
+        last_report_update_time = this_timestamp
 
         # If a keys were pressed during the main loop, then display them.
         if retained_pressed_keys:
@@ -261,11 +269,14 @@ while True:
         # ****************************************************************
         # DEBUG: Display loop metrics
         # ****************************************************************
-        loop_avg = loop_elapsed_time['sum'] / ( loop_elapsed_time['count'] ) if loop_elapsed_time['count'] > 0 else 0.0
-        logging.info(f"Loop Elapsed Time: Avg: {1000.0*loop_avg:.3f} ms, Min: {1000.0*loop_elapsed_time['min']:.3f} ms, Max: {1000.0*loop_elapsed_time['max']:.3f} ms, Loops: {loop_elapsed_time['count']} iterations")
+        loop_avg = loop_elapsed_time_metrics['sum'] / ( loop_elapsed_time_metrics['count'] ) if loop_elapsed_time_metrics['count'] > 0 else 0.0
+        logging.info(f"Loop Elapsed Time: Avg: {1000.0*loop_avg:.3f} ms, Min: {1000.0*loop_elapsed_time_metrics['min']:.3f} ms, Max: {1000.0*loop_elapsed_time_metrics['max']:.3f} ms, Loops: {loop_elapsed_time_metrics['count']} iterations")
 
-        led_avg = led_update_elapsed_time['sum'] / ( led_update_elapsed_time['count'] ) if led_update_elapsed_time['count'] > 0 else 0.0
-        logging.info(f"LED Update Elapsed Time: Avg: {1000.0*led_avg:.3f} ms, Min: {1000.0*led_update_elapsed_time['min']:.3f} ms, Max: {1000.0*led_update_elapsed_time['max']:.3f} ms, Updates: {loop_elapsed_time['count']} iterations")
+        led_int_avg = led_update_interval['sum'] / ( led_update_interval['count'] ) if led_update_interval['count'] > 0 else 0.0
+        logging.info(f"LED Update Interval Time: Avg: {1000.0*led_int_avg:.3f} ms, Min: {1000.0*led_update_interval['min']:.3f} ms, Max: {1000.0*led_update_interval['max']:.3f} ms, Updates: {led_update_interval['count']} iterations")
+
+        led_proc_avg = led_update_proc_time['sum'] / ( led_update_proc_time['count'] ) if led_update_proc_time['count'] > 0 else 0.0
+        logging.info(f"LED Update Processing Time: Avg: {1000.0*led_proc_avg:.3f} ms, Min: {1000.0*led_update_proc_time['min']:.3f} ms, Max: {1000.0*led_update_proc_time['max']:.3f} ms, Updates: {led_update_proc_time['count']} iterations")
 
 
     # ****************************************************************
