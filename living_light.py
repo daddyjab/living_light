@@ -59,8 +59,8 @@ REPORT_UPDATE_TIME_SEC = 0.5
 last_report_update_time = time.time()
 
 # Distance and Proximity
-dist = None
-is_nearby = {}
+dist = ( None,None )
+is_nearby = { 'Entrance':False, 'Exit':False }
 
 # Keypad
 retained_pressed_keys = None
