@@ -79,7 +79,7 @@ class LightingController(Model):
         """
 
         # Initialize the LED strip
-        self.led_strip = neopixel.NeoPixel(pin=board.D18, n=300, brightness=brightness)
+        self.led_strip = neopixel.NeoPixel(pin=board.D18, n=300, auto_write=False, brightness=brightness)
 
         # Turn off all LEDs, just in case some were left off
         self.all_leds_off()
@@ -90,12 +90,14 @@ class LightingController(Model):
         Turn all LEDs off
         """
         self.led_strip.fill( (0,0,0) )
+        self.led_strip.show()
 
     def all_leds_on(self):
         """
         Turn all LEDs off
         """
         self.led_strip.fill( (255,255,255) )
+        self.led_strip.show()
 
     def highlight_every_tenth_led(self):
         """
@@ -107,6 +109,7 @@ class LightingController(Model):
 
         # Turn every 10th LED to full brightness
         self.led_strip[::10] = [ (255,255,255) for i in range(len(self.led_strip[::10])) ]        
+        self.led_strip.show()
 
 
     # Overload this function to replace the simulated LED inteface
@@ -146,6 +149,9 @@ class LightingController(Model):
 
                         # Color is specified as integer-encoded RGB value
                         self.led_strip[led_id] = int(led_col[...])
+
+        # Show the revised LED colors on the LED Strip
+        self.led_strip.show()
 
 
 
