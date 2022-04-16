@@ -100,28 +100,28 @@ class Model():
         self.MODEL_SCENARIO_CONFIG = {
 
             # Normal Scenarios
-            'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'ellipse', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
+            'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'ellipse', 'brightness_scale': 0.5, 'cycle_time': 4.0 },
+            'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
 
             # Diagnostic Scenarios (all performed with brightest color profile)
-            'diag_calibrate_distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_on', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_come_in': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_ellipse': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'ellipse', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_range': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'range', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_all_on': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_on', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_all_off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_off', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
+            'diag_calibrate_distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_on', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_come_in': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_ellipse': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'ellipse', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_range': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'range', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_all_on': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_on', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_all_off': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_off', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
 
             # Color Profile Scenarios (all performed with the 'come_in' pattern)
-            'diag_cp_candle': { 'color_profile': 'Candle', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_40w_tungsten': { 'color_profile': '40W Tungsten', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_100w_tungsten': { 'color_profile': '100W Tungsten', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_halogen': { 'color_profile': 'Halogen', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_carbon_arc': { 'color_profile': 'Carbon Arc', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_high_noon_sun': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_direct_sunlight': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_overcast_sky': { 'color_profile': 'Overcast Sky', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
-            'diag_cp_clear_blue_sky': { 'color_profile': 'Clear Blue Sky', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 2.0 },
+            'diag_cp_candle': { 'color_profile': 'Candle', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_40w_tungsten': { 'color_profile': '40W Tungsten', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_100w_tungsten': { 'color_profile': '100W Tungsten', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_halogen': { 'color_profile': 'Halogen', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_carbon_arc': { 'color_profile': 'Carbon Arc', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_high_noon_sun': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_direct_sunlight': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_overcast_sky': { 'color_profile': 'Overcast Sky', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'diag_cp_clear_blue_sky': { 'color_profile': 'Clear Blue Sky', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
         }
 
         # Current Model scenario
@@ -420,7 +420,7 @@ class Model():
         # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
         if c=='Right':
             # Sinusoidal cycling of brightness based upon column and timestep
-            b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
+            b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
 
             # With slower sinusoidal cycling of brightness based only upon time
             b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
@@ -466,15 +466,19 @@ class Model():
             # Ellipse of brightness based upon row and column
             # overlaid with sinusoidal cycling of brightness based upon timestep only
             b_steep = 4.0
-            b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( (n_c-col_inc*(t % self.timesteps_per_cycle))-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
+            b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_inc*(t % self.timesteps_per_cycle)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
 
             # With slower sinusoidal cycling of brightness based only upon time
             b_adj = np.clip( b_adj, 0.0, 1.0 )
             b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
         elif c=='Top':
-            # Sinusoidal cycling of brightness based upon timestep only
-            b_adj = np.abs( np.sin( np.pi * breath_inc*t ) )
+            # Sinusoidal cycling of brightness based upon column and timestep
+            b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
+            b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+
+            # # Sinusoidal cycling of brightness based upon timestep only
+            # b_adj = np.abs( np.sin( np.pi * breath_inc*t ) )
 
         elif c=='Left':
             # Ellipse of brightness based upon row and column
