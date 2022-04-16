@@ -101,7 +101,7 @@ class Model():
 
             # Normal Scenarios
             'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'ellipse', 'brightness_scale': 0.5, 'cycle_time': 4.0 },
-            'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 0.75, 'cycle_time': 4.0 },
             'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
 
             # Diagnostic Scenarios (all performed with brightest color profile)
@@ -426,9 +426,13 @@ class Model():
             b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
         elif c=='Top':
-            # Sinusoidal cycling of brightness based upon column and timestep
-            b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
-            b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+            # # Sinusoidal cycling of brightness based upon column and timestep
+            # b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
+            # b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+
+            # Turn Top component LEDs off completely
+            b_fixed = 0.0
+            b_adj = 0.0
 
         elif c=='Left':
             # Sinusoidal cycling of brightness based upon column and timestep
@@ -473,12 +477,16 @@ class Model():
             b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
         elif c=='Top':
-            # Sinusoidal cycling of brightness based upon column and timestep
-            b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
-            b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+            # # Sinusoidal cycling of brightness based upon column and timestep
+            # b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
+            # b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
             # # Sinusoidal cycling of brightness based upon timestep only
             # b_adj = np.abs( np.sin( np.pi * breath_inc*t ) )
+
+            # Turn Top component LEDs off completely
+            b_fixed = 0.0
+            b_adj = 0.0
 
         elif c=='Left':
             # Ellipse of brightness based upon row and column
