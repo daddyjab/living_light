@@ -120,20 +120,8 @@ class LightingController(Model):
         of the model and the color for each LED
         """
 
-        # Loop through each component of the Model (each side and the top)
+        # Loop through each component of the Model (sides Right and Left)
         for c in self.MODEL_CONFIG:
-
-            # # Use the config info to determine which LED to set
-            # # for each element of led_array
-            # for col in range(self.MODEL_CONFIG[c]['leds']['cols']):
-            #     for row in range(self.MODEL_CONFIG[c]['leds']['rows']):
-
-            #         # Map input coordinates of a LED to a physical LED index for this component
-            #         led_id = self.MODEL_CONFIG[c]['led_ids'][row][col]
-
-            #         # If an actual LED ID is populated, then set the LED using the specified color
-            #         if led_id:
-            #             self.led_strip[led_id] = rgb_int_to_tuple( self.led_array[c][row][col] )
 
             # Use numpy iterator to set the LED color values
             with np.nditer( self.led_array[c], flags=['multi_index'], op_flags=['readonly']) as la_iter:

@@ -7,7 +7,7 @@ from display_helper import *
 
 class Model():
     """
-    Class representing the sides and top of the model and their LEDs
+    Class representing the sides of the model and their LEDs
     """
     def __init__(self):
 
@@ -17,41 +17,25 @@ class Model():
         self.MODEL_CONFIG = {
             'Left': {
                 # Real and Simulated: Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 10, 'cols': 7 },
+                'leds': { 'rows': 10, 'cols': 9 },
 
                 # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
                 #       Set as a np.array of shape defined by leds => rows/cols above
                 'led_ids': np.array([
-                                    [ 207, 210, 230, 234, None, 258, 278 ],
-                                    [ 206, 211, 229, 235, 254, 259, 277 ],
-                                    [ 205, 212, 228, 236, 253, 260, 276 ],
-                                    [ 204, 213, 227, 237, 252, 261, 275 ],
-                                    [ 203, 214, 226, 238, 251, 262, 274 ],
-                                    [ 202, 215, 225, 239, 250, 263, 273 ],
-                                    [ 201, 216, 224, 240, 249, 264, 272 ],
-                                    [ 200, 217, 223, 241, 248, 265, 271 ],
-                                    [ 199, 218, 222, 242, 247, 266, 270 ],
-                                    [ 198, None, 221, 243, 246, None, 269 ]
+                                    [ 159, 180, 184, 204, 208, 228, 232, 253, 257 ],
+                                    [ 160, 179, 185, 203, 209, 227, 233, 252, 258 ],
+                                    [ 161, 178, 186, 202, 210, 226, 234, 251, 259 ],
+                                    [ 162, 177, 187, 201, 211, 225, 235, 250, 260 ],
+                                    [ 163, 176, 188, 200, 212, 224, 236, 249, 261 ],
+                                    [ 164, 175, 189, 199, 213, 223, 237, 248, 262 ],
+                                    [ 165, 174, 190, 198, 214, 222, 238, 247, 263 ],
+                                    [ 166, 173, 191, 197, 215, 221, 239, 246, 264 ],
+                                    [ 167, 172, 192, 196, 216, 220, 240, 245, 265 ],
+                                    [ 168, None, None, None, None, None, None, None, 266 ]
                                     ]),
 
                 # Simulated: Dimensions of this component in the simulated model
-                'bbox': (0,600, 600,1000),                
-                },
-
-            'Top': {
-                # Arrangement of LEDs in this model (real or simulated)
-                'leds': { 'rows': 3, 'cols': 17 },
-
-                # Real: Mapping of the rows/cols and physical LED numbers on the LED Strip
-                #       Set as a np.array of shape defined by leds => rows/cols above
-                'led_ids': np.array([
-                                    [ 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 177, 176, 175, 174, 173, 172 ],
-                                    [ None, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168 ],
-                                    [ None, 149, 148, 147, 146, 145, 144, 143, 142, 141, 140, 139, 138, 137, 136, 135, 134 ]
-                                    ]),
-
-                # Simulated: Dimensions of this component in the simulated model
-                'bbox': (600,0, 1000,600),
+                'bbox': (0,0, 450,500),                
                 },
 
             'Right': {
@@ -74,7 +58,7 @@ class Model():
                                     ]),
 
                 # Simulated: Dimensions of this component in the simulated model
-                'bbox': (1000,600, 1600,1000),
+                'bbox': (550,0, 1000,500),
                 },
         }
 
@@ -153,6 +137,14 @@ class Model():
             'all_on': self._pattern_on,
         }
 
+        # Set shadow control LEDs to provide full brightness for LEDs
+        # on the top row and with a fixed column spacing, which will generate
+        # a specific, fixed (or possibly varying) shadow on the top of the model
+        self.SHADOW_CONTROL_ROWS = [0]
+        self.SHADOW_CONTROL_COLUMNS = [0,2,4,6,8]
+        self.SHADOW_CONTROL_BRIGHTNESS = 1.0
+
+
         # LED Timestep: Interval between calls to update the LED pattern. 
         # Note: This configuration setting must be small enough to permit flexibility in setting
         #       the speed of individual scenario patterns, but large enough that CPU can perform all needed processing
@@ -162,7 +154,7 @@ class Model():
         self.timesteps_per_cycle = None
 
         # LED Pattern Buffer, which stores a dictionary of 5D numpy arrays
-        # for each model component ('Left', 'Top', 'Right').
+        # for each model component ('Left', 'Right').
         # Value: The color of the LED for each component
         # Dimensions:
         # 1. Proximity: Integer-encoded Entrance/Exit combinations
@@ -333,7 +325,7 @@ class Model():
         # value based upon HLS values extracted above from the associated color profile
         def _helper_brightness_to_rgb_in_profile( b:float=None ) -> tuple:
             # Adjust the lightness factor based upon the brightness value [0.0 to 1.0]
-            rgb = hls_to_rgb_tuple( (h_prof, b*l_prof, s_prof) )
+            rgb = hls_to_rgb_tuple( (h_prof, np.clip(b*l_prof, 0.0, 1.0), s_prof) )
             return rgb_tuple_to_int( rgb )
 
         # Use the LED Pattern specified in the Light Scenario
@@ -390,8 +382,7 @@ class Model():
     #     starting point (e.g., Entrance in many cases) to its ending point (e.g., Exit in many cases).
     #   * Speed will vary depending upon the dimensions of the model components so that
     #     the pattern will start and end on each component in synchronization with the other components,
-    #     even if cone component has 7 columns of LEDs, another has 9, and another has 17.
-    #   * Speed will be expressed as 
+    #     even if one component has 7 columns of LEDs, another has 9, and another has 17.
     #     
     #
     # * Respiration rate:
@@ -399,18 +390,31 @@ class Model():
     #   * After brisk walk (adult normal): 30 breaths per minute => 2 seconds per breath
     #   * During exercise (adult normal): 40-60 breaths per minute => 1 to 1.5 seconds per breath
     # **********************************************************************************************
+
+
     def _pattern_come_in( self, c, r_ix, c_ix, n_r, n_c, t:int=0, dist:int=0, prox:int=0 ):
         """
-        Provide a brightness patternt that invites a person to enter the space
+        Provide an elliptic pattern of brightness that invites a person to enter the space,
+        with the pattern brighness overlaid with a slower overall variation in brightness
+        akin to "breathing"
         """
 
+        # Set shadow control LEDs to provide full brightness for LEDs
+        # on the top row and with a fixed column spacing, which will generate
+        # a specific, fixed (or possibly varying) shadow on the top of the model
+        if r_ix in self.SHADOW_CONTROL_ROWS:
+            return self.SHADOW_CONTROL_BRIGHTNESS if c_ix in self.SHADOW_CONTROL_COLUMNS else 0.0
+      
         # Rate at which column should be incremented per timestep (LEDs/timestep)
         # [LED columns/timestep]=> # of Columns [LED columns/cycle] / Timesteps per Cycle [timesteps/cycle]
         col_inc = float(n_c) / self.timesteps_per_cycle
 
         # Rate at which "breathing" should be incremented per timestep
-        # [Multiples of pi/timestep] => [Multiples of pi/cycle] / Timesteps per Cycle [timesteps/cycle]
-        breath_inc = 1.0 / self.timesteps_per_cycle
+        # Breathing Rate = [One Breath (dim->bright->dim) / Cycle]
+        BREATHING_RATE = 1.0
+
+        # Breathing Increment [ Breaths / Timestep ] = [ One Breath (dim->bright->dim) / Cycle ] / Timesteps per Cycle [timesteps/cycle]
+        breath_inc = BREATHING_RATE / self.timesteps_per_cycle
 
         # Brightness decomposed to a fixed base brightness level
         # plus an adjusted brightness that can vary based upon the various input parameters
@@ -425,15 +429,6 @@ class Model():
             # With slower sinusoidal cycling of brightness based only upon time
             b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
-        elif c=='Top':
-            # # Sinusoidal cycling of brightness based upon column and timestep
-            # b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
-            # b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
-
-            # Turn Top component LEDs off completely
-            b_fixed = 0.0
-            b_adj = 0.0
-
         elif c=='Left':
             # Sinusoidal cycling of brightness based upon column and timestep
             b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) ) if n_c > 1 else 1.0
@@ -445,16 +440,27 @@ class Model():
 
     def _pattern_ellipse( self, c, r_ix, c_ix, n_r, n_c, t:int=0, dist:int=0, prox:int=0 ):
         """
-        Provide a brightness patternt that invites a person to enter the space
+        Provide a rectangular pattern of brightness that invites a person to enter the space,
+        with the pattern brighness overlaid with a slower overall variation in brightness
+        akin to "breathing"
         """
 
+        # Set shadow control LEDs to provide full brightness for LEDs
+        # on the top row and with a fixed column spacing, which will generate
+        # a specific, fixed (or possibly varying) shadow on the top of the model
+        if r_ix in self.SHADOW_CONTROL_ROWS:
+            return self.SHADOW_CONTROL_BRIGHTNESS if c_ix in self.SHADOW_CONTROL_COLUMNS else 0.0
+      
         # Rate at which column should be incremented per timestep (LEDs/timestep)
         # [LED columns/timestep]=> # of Columns [LED columns/cycle] / Timesteps per Cycle [timesteps/cycle]
         col_inc = float(n_c) / self.timesteps_per_cycle
 
         # Rate at which "breathing" should be incremented per timestep
-        # [Multiples of pi/timestep] => [Multiples of pi/cycle] / Timesteps per Cycle [timesteps/cycle]
-        breath_inc = 1.0 / self.timesteps_per_cycle
+        # Breathing Rate = [One Breath (dim->bright->dim) / Cycle]
+        BREATHING_RATE = 1.0
+
+        # Breathing Increment [ Breaths / Timestep ] = [ One Breath (dim->bright->dim) / Cycle ] / Timesteps per Cycle [timesteps/cycle]
+        breath_inc = BREATHING_RATE / self.timesteps_per_cycle
 
         # Brightness decomposed to a fixed base brightness level
         # plus an adjusted brightness that can vary based upon the various input parameters
@@ -475,18 +481,6 @@ class Model():
             # With slower sinusoidal cycling of brightness based only upon time
             b_adj = np.clip( b_adj, 0.0, 1.0 )
             b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
-
-        elif c=='Top':
-            # # Sinusoidal cycling of brightness based upon column and timestep
-            # b_adj = np.abs( np.sin( np.pi * ( (c_ix + col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
-            # b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
-
-            # # Sinusoidal cycling of brightness based upon timestep only
-            # b_adj = np.abs( np.sin( np.pi * breath_inc*t ) )
-
-            # Turn Top component LEDs off completely
-            b_fixed = 0.0
-            b_adj = 0.0
 
         elif c=='Left':
             # Ellipse of brightness based upon row and column
@@ -509,19 +503,21 @@ class Model():
         Add a border of full-bright lights on each edge (0,0), (0,n_c), (n_r,0), (n_r, n_r)
         """
 
+        # Set shadow control LEDs to provide full brightness for LEDs
+        # on the top row and with a fixed column spacing, which will generate
+        # a specific, fixed (or possibly varying) shadow on the top of the model
+        if r_ix in self.SHADOW_CONTROL_ROWS:
+            return self.SHADOW_CONTROL_BRIGHTNESS if c_ix in self.SHADOW_CONTROL_COLUMNS else 0.0
+      
         # Initialize the brightness level
         b = 0
 
         # Border
-        if (r_ix in [0, n_r-1]) or (c_ix in [0, n_c-1]):
+        if (r_ix in [1, n_r-1]) or (c_ix in [0, n_c-1]):
             b = 1.0
 
         # Show the full range of brightness values on all components (sides, top) of the model
         elif c=='Right':
-            # Low to High Brightness based upon row and column
-            b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
-
-        elif c=='Top':
             # Low to High Brightness based upon row and column
             b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
 
@@ -550,12 +546,12 @@ class Model():
     # ***********************************************
     # Methods to Simulate LED Behavior in the Model
     # ***********************************************
-    def draw_model_sides_top(self):
+    def draw_simulated_model_framework(self):
         """
         Draw the main components of the model: sides, top
         """
         # Create background enclosure for the model
-        MAX_IMAGE_SIZE = (1600,1000)
+        MAX_IMAGE_SIZE = (1000,500)
         self.model = Image.new( "RGB", MAX_IMAGE_SIZE, color=(10,10,10) )
 
         # Prepare to draw objects
