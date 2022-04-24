@@ -194,7 +194,7 @@ while True:
                 logging.info("**** Keys 1 and 4 Pressed: Launching Distance Calibration Procedure")
 
                 # Change lighting scenario to high brightness during calibration
-                lc.init_model_scenario('diagcalibratedistance')
+                lc.init_model_scenario('diag_calibrate_distance')
 
                 # Launch Distance Calibration
                 lc.baseline_distance, lc.calibrated_positions = lc._calibrate_distance_sensors()
