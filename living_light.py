@@ -42,7 +42,7 @@ lc.init_model_scenario('Idle')
 # 5. Optionally wait a short period of time and then restart the loop.
 
 # Distance and Proximity
-dist = ( None,None )
+dist = None
 is_nearby = { 'Entrance':False, 'Exit':False }
 
 # Keypad
@@ -244,9 +244,9 @@ while True:
         dist = lc.get_distance()
 
         try:
-            # Normalize the distance
+            # Normalize the distance (Entrance=1, Midway=0.5, Exit=0)
             n_dist = lc.normalize_distance( dist )
-            logging.info(f"Left Distance: {dist[0]} [Normalized: {n_dist[0]}], Right Distance: {dist[1]} [Normalized: {n_dist[1]}]")
+            logging.info(f"Distance: {dist} [Normalized: {n_dist}]")
 
         except TypeError:
             pass

@@ -265,12 +265,12 @@ class Model():
         np.savez( scen_filep, **self.led_pattern_buffer )
 
 
-    def update_led_pattern(self, timestep:int=0, distance:tuple=(1.0,1.0), proximity:dict={} ):
+    def update_led_pattern(self, timestep:int=0, distance:float=1.0, proximity:dict={} ):
         """
         When run from within the main loop, this method uses the LED Pattern Buffer to display
         the appropriate LED colors based upon the specified proximity, distance, and timestep values.
         * proximity: Dictionary indicating if object is (True) or is not (False) near a sensor 'Entrance' or 'Exit'
-        * distance: Tuple of normalized distance [0.0 to 1.0] for (Left Distance Sensor, Right Distance Sensor)
+        * distance: Normalized distance [0.0 to 1.0]
         """
 
         # Proximity: Convert proximity sensor values to a single proximity index [0 to self.N_LED_PATTERN_PROXIMITY]
@@ -286,8 +286,7 @@ class Model():
 
         # Calculate a single distance value based upon whichever sensors have non-null values
         # Ensure that the individual normalized distances are in the range 0.0 to 1.0.
-        d_notnull = [ x for x in distance if x is not None ]
-        d = np.mean( np.clip(d_notnull, 0.0, 1.0) ) if len(d_notnull) > 0 else 1.0
+        d = np.clip(distance, 0.0, 1.0)
         d_idx = int( np.round( d * (self.N_LED_PATTERN_DISTANCE-1) ) )
         
         # Timestep, where the interval between timesteps is self.LED_TIMESTEP_SEC

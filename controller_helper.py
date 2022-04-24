@@ -49,7 +49,7 @@ class LightingController(Model):
         self.CALIBRATION_FILEN = None
         self.baseline_distance = None
         self.calibrated_positions = None        
-        self.normalizing_polys = None
+        self.normalizing_poly = None
         logging.info("Initializing the Distance Sensors")
         self._init_distance_sensors(run_distance_calib=run_distance_calibration)
 
@@ -156,9 +156,10 @@ class LightingController(Model):
         GPIO.setmode(GPIO.BCM)
 
         # Configure the Raspberry Pi GPIO ports used by the Ultrasonic sensors
+        # NOTE: Right sensor no longer available, so only left sensor will be used in calcs
         self.GPIO_ULTRASONIC = {
-            'Right': { 'trigger': 17, 'echo': 27, 'working': True },
-            'Left': { 'trigger': 16, 'echo': 25, 'working': True }
+            'Left': { 'trigger': 16, 'echo': 25, 'working': True },
+            # 'Right': { 'trigger': 17, 'echo': 27, 'working': True },
         }
 
         # Set the trigger port to output and echo port to input
@@ -185,16 +186,16 @@ class LightingController(Model):
         # Run calibration procedure if requested or if no calibration file exists,
         # which includes saving the results to the calibration file
         if run_distance_calib or ( os.path.exists( self.CALIBRATION_FILEN ) == False ):
-            self.baseline_distance, self.calibrated_positions = self._calibrate_distance_sensors()
+            self.baseline_distance, self.calibrated_positions = self._calibrate_distance_sensor()
 
         # Load calibration parameters if the parameters are not already set
         # and if the calibration file exists
         if (self.calibrated_positions is None) and os.path.exists( self.CALIBRATION_FILEN ):
             self.baseline_distance, self.calibrated_positions = self._load_calibration_parameters()
             
-        # Calculate distance normalizing polynomials, such that distance is normalized
+        # Calculate distance normalizing polynomial, such that distance is normalized
         # the calibrated positions for Entrance to Exit are normalized to 1.0 to 0.0
-        self.normalizing_polys = self._calc_normalizing_polys()
+        self.normalizing_poly = self._calc_normalizing_poly()
 
 
     def get_distance(self):
@@ -287,16 +288,12 @@ class LightingController(Model):
             # Get the distaince for this unit
             dist[unit] = _one_sensor_distance( unit )
 
-            # Pause for a short period (1 microsecond) before the next measurement,
-            # just in case there are reverberations of sound that need to dissipate
-            # Revised: No additional delay is needed
-            # time.sleep(1e-6)
-
         # Populate the results in a tuple
-        return ( dist['Left'], dist['Right'] )
+        # NOTE: Right sensor no longer available, so only left sensor will be used in calcs
+        return dist['Left']
 
 
-    def _calibrate_distance_sensors( self ):
+    def _calibrate_distance_sensor( self ):
         """
         Run a semiautomated calibration procedure to
         measure distances with a model person place at
@@ -306,20 +303,19 @@ class LightingController(Model):
         3. Person Midway (Right, Center, Left)
         4. Person at Exit (Right, Center, Left)
 
-        Distances are represented by a pair of values:
-        (Right Sensor distance [cm], Left Sensor distance [cm])
+        Distances are represented by Distance [cm]
 
         Save the calibration parameters to a file.
         """
 
         # Distance measured by the sensors when no one is present
-        baseline_distance = (None, None)
+        baseline_distance = None
 
         # Depth (Entrance, Midway, Exit), Side (Right, Center, Left)
         calibrated_positions = {
-            'Entrance': { 'Right': (None, None), 'Center': (None, None), 'Left': (None, None) },
-            'Midway': { 'Right': (None, None), 'Center': (None, None), 'Left': (None, None) },
-            'Exit': { 'Right': (None, None), 'Center': (None, None), 'Left': (None, None) },
+            'Entrance': { 'Left': None, 'Center': None, 'Right': None },
+            'Midway':   { 'Left': None, 'Center': None, 'Right': None },
+            'Exit':     { 'Left': None, 'Center': None, 'Right': None },
         }
 
         # Obtain distance measurements for calibrated positions
@@ -364,13 +360,12 @@ class LightingController(Model):
         with open(self.CALIBRATION_FILEN, mode='w', newline='') as c_file:
             c_writer = csv.writer( c_file, delimiter=',')
 
-            # Save baseline distance values
-            c_writer.writerow( baseline_dist )
+            # Save baseline distance value
+            c_writer.writerow( [baseline_dist] )
 
             # Save calibrated positions values
             for depth in ['Entrance', 'Midway', 'Exit']:
-                for side in ['Right', 'Center', 'Left']:
-                    c_writer.writerow( calib_pos[depth][side] )
+                c_writer.writerow( [calib_pos[depth][side] for side in ['Left', 'Center', 'Right'] ] )
 
         logging.info(f"Save completed.")
 
@@ -385,79 +380,52 @@ class LightingController(Model):
             c_reader = csv.reader( c_file, delimiter=',')
 
             # Load baseline distance values
-            dist_left, dist_right = next(c_reader)
+            baseline_dist = next(c_reader)
             try:
-                dist_left = float(dist_left)
+                baseline_dist = float(baseline_dist)
 
             except ValueError:
-                dist_left = None
-
-            try:
-                dist_right = float(dist_right)
-
-            except ValueError:
-                dist_right = None
-
-            baseline_dist = dist_left, dist_right
+                baseline_dist = None
 
             # Save calibrated positions values
             calib_pos = {}
             for depth in ['Entrance', 'Midway', 'Exit']:
                 calib_pos[depth] = {}
-                for side in ['Right', 'Center', 'Left']:
-                    dist_left, dist_right = next(c_reader)
-                    try:
-                        dist_left = float(dist_left)
-
-                    except ValueError:
-                        dist_left = None
-
-                    try:
-                        dist_right = float(dist_right)
-
-                    except ValueError:
-                        dist_right = None
-
-                    calib_pos[depth][side] = dist_left, dist_right
+                calib_pos[depth]['Left'], calib_pos[depth]['Center'], calib_pos[depth]['Right'] = next(c_reader)
 
         logging.info(f"Load completed.")
 
         return baseline_dist, calib_pos
 
 
-    def _calc_normalizing_polys( self ) -> tuple:
+    def _calc_normalizing_poly( self ) -> tuple:
         """
-        Fit the calibrated positions data to a polynomial (linear) for distance,
-        with a separate equations for the Left (0) and Right (1) sensors.
+        Fit the calibrated positions data to a polynomial (linear) for distance.
         This will allow distance from Entrance to Midway to Exit to be mapped to a value 1.0 to 0.5 to 0.0 (approximately).
         """
 
         # Use Calibrated Position measurements that are more in line with each distance sensor:
-        # * Left sensor (0):  Use Left and Center calibrated position measurements
-        # * Right sensor (1), Use Right and Center calibrated position measurements
         # NOTE: Right sensor no longer available, so only left sensor will be used in calcs
-        SIDES_FOR_SENSORS = { 0: [ 'Left', 'Center' ], 1: [ 'Right', 'Center' ] }
 
-        poly = {}
-        for sensor in [0]:
+        # Build a set of x,y points to be fitted for this sensor
+        x_list = []
+        y_list = []
+        for side in [ 'Left', 'Center', 'Right' ]:
+            # Get the set of x,y points for this side for Entrance and Midway
+            # NOTE: Exclude 'Exit' measurements since they are behind the distance sensor
+            # x = [ self.calibrated_positions[depth][side][sensor] for depth in ['Entrance', 'Midway', 'Exit'] ]
+            # y = [ 1.0, 0.5, 0.0 ]
+            x = [ self.calibrated_positions[depth][side] for depth in ['Entrance', 'Midway'] ]
+            y = [ 1.0, 0.5 ]
+            x_list.extend(x)
+            y_list.extend(y)
 
-            # Build a set of x,y points to be fitted for this sensor
-            x_sensor = []
-            y_sensor = []
+        # Find the maximum distance measured at the Entrance or Midway
+        # and use it as the upper limit for unnormalized distance values
+        x_max = max(x_list)
 
-            for side in SIDES_FOR_SENSORS[sensor]:
-                # Get the set of x,y points for this side for this sensor
-                x = [ self.calibrated_positions[depth][side][sensor] for depth in ['Entrance', 'Midway', 'Exit'] ]
-                y = [ 1.0, 0.5, 0.0 ]
-                x_sensor.extend(x)
-                y_sensor.extend(y)
-
-            # Find the maximum distance measured at the Entrance and use it as the upper value for the input domain
-            # domain_max_distance = max( self.calibrated_positions['Entrance']['Center'][0], self.calibrated_positions['Entrance']['Center'][1] )
-            domain_max_distance = self.calibrated_positions['Entrance']['Center'][0]
-
-            # Find the coefficients of a linear equation that best fit the x,y for this sensor
-            poly[sensor] = Polynomial.fit( x_sensor, y_sensor, deg=1, domain=[0.0, domain_max_distance], window=[0.0, 1.0] )
+        # Find the coefficients of a linear equation that best fit the x,y for this sensor
+        poly = Polynomial.fit( x_list, y_list, deg=1, domain=[0.0, x_max], window=[0.0, 1.0] )
 
         return poly
         
@@ -467,25 +435,15 @@ class LightingController(Model):
         Generate normalized distance by applying the linear equation
         fitted to the calibrated positions measurements
         """
-        # Normalized distance for distance sensors Left (0) and Right (1)
-        # NOTE: If the sensor is not working, one or both values in the tuple d
-        #       may be None
-        nd_left, nd_right = (None, None)
+        # Normalized distance for distance sensors
+        # Raw distance is mapped to Entrance 1.0 -> Midway 0.5 -> Exit 0.0
         try:
-            nd_left = self.normalizing_polys[0].convert().coef[0] + self.normalizing_polys[0].convert().coef[1] * d[0]
+            norm_dist = self.normalizing_poly.convert().coef[0] + self.normalizing_poly.convert().coef[1] * d[0]
 
         except (TypeError, AttributeError):
-            nd_left = None
+            norm_dist = None
 
-        # NOTE: Right sensor no longer available, so only left sensor will be used in calcs
-        nd_right = None
-        # try:
-        #     nd_right = self.normalizing_polys[1].convert().coef[0] + self.normalizing_polys[1].convert().coef[1] * d[1]
-
-        # except (TypeError, AttributeError):
-        #     nd_right = None
-
-        return (nd_left, nd_right)
+        return norm_dist
 
 
 
