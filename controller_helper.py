@@ -79,7 +79,7 @@ class LightingController(Model):
         """
 
         # Initialize the LED strip
-        self.led_strip = neopixel.NeoPixel(pin=board.D18, n=300, auto_write=False, brightness=brightness)
+        self.led_strip = neopixel.NeoPixel(pin=board.D18, n=268, auto_write=False, brightness=brightness)
 
         # Turn off all LEDs, just in case some were left off
         self.all_leds_off()
