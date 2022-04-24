@@ -386,8 +386,18 @@ class LightingController(Model):
 
             # Load baseline distance values
             dist_left, dist_right = next(c_reader)
-            dist_left = float(dist_left) if dist_left is not None else None
-            dist_right = float(dist_right) if dist_right is not None else None
+            try:
+                dist_left = float(dist_left)
+
+            except ValueError:
+                dist_left = None
+
+            try:
+                dist_right = float(dist_right)
+
+            except ValueError:
+                dist_right = None
+
             baseline_dist = dist_left, dist_right
 
             # Save calibrated positions values
@@ -396,8 +406,18 @@ class LightingController(Model):
                 calib_pos[depth] = {}
                 for side in ['Right', 'Center', 'Left']:
                     dist_left, dist_right = next(c_reader)
-                    dist_left = float(dist_left) if dist_left is not None else None
-                    dist_right = float(dist_right) if dist_right is not None else None
+                    try:
+                        dist_left = float(dist_left)
+
+                    except ValueError:
+                        dist_left = None
+
+                    try:
+                        dist_right = float(dist_right)
+
+                    except ValueError:
+                        dist_right = None
+
                     calib_pos[depth][side] = dist_left, dist_right
 
         logging.info(f"Load completed.")
