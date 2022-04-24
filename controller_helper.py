@@ -411,10 +411,11 @@ class LightingController(Model):
         # Use Calibrated Position measurements that are more in line with each distance sensor:
         # * Left sensor (0):  Use Left and Center calibrated position measurements
         # * Right sensor (1), Use Right and Center calibrated position measurements
+        # NOTE: Right sensor no longer available, so only left sensor will be used in calcs
         SIDES_FOR_SENSORS = { 0: [ 'Left', 'Center' ], 1: [ 'Right', 'Center' ] }
 
         poly = {}
-        for sensor in [0, 1]:
+        for sensor in [0]:
 
             # Build a set of x,y points to be fitted for this sensor
             x_sensor = []
@@ -428,7 +429,8 @@ class LightingController(Model):
                 y_sensor.extend(y)
 
             # Find the maximum distance measured at the Entrance and use it as the upper value for the input domain
-            domain_max_distance = max( self.calibrated_positions['Entrance']['Center'][0], self.calibrated_positions['Entrance']['Center'][1] )
+            # domain_max_distance = max( self.calibrated_positions['Entrance']['Center'][0], self.calibrated_positions['Entrance']['Center'][1] )
+            domain_max_distance = self.calibrated_positions['Entrance']['Center'][0]
 
             # Find the coefficients of a linear equation that best fit the x,y for this sensor
             poly[sensor] = Polynomial.fit( x_sensor, y_sensor, deg=1, domain=[0.0, domain_max_distance], window=[0.0, 1.0] )
@@ -451,11 +453,13 @@ class LightingController(Model):
         except (TypeError, AttributeError):
             nd_left = None
 
-        try:
-            nd_right = self.normalizing_polys[1].convert().coef[0] + self.normalizing_polys[1].convert().coef[1] * d[1]
+        # NOTE: Right sensor no longer available, so only left sensor will be used in calcs
+        nd_right = None
+        # try:
+        #     nd_right = self.normalizing_polys[1].convert().coef[0] + self.normalizing_polys[1].convert().coef[1] * d[1]
 
-        except (TypeError, AttributeError):
-            nd_right = None
+        # except (TypeError, AttributeError):
+        #     nd_right = None
 
         return (nd_left, nd_right)
 
