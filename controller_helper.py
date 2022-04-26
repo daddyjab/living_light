@@ -361,11 +361,11 @@ class LightingController(Model):
             c_writer = csv.writer( c_file, delimiter=',')
 
             # Save baseline distance value
-            c_writer.writerow( [baseline_dist] )
+            c_writer.writerow( [ baseline_dist ] )
 
             # Save calibrated positions values
             for depth in ['Entrance', 'Midway', 'Exit']:
-                c_writer.writerow( [calib_pos[depth][side] for side in ['Left', 'Center', 'Right'] ] )
+                c_writer.writerow( [ calib_pos[depth][side] for side in ['Left', 'Center', 'Right'] ] )
 
         logging.info(f"Save completed.")
 
@@ -381,24 +381,20 @@ class LightingController(Model):
 
             # Load baseline distance values
             baseline_dist = next(c_reader)
-            try:
-                baseline_dist = float(baseline_dist)
-
-            except ValueError:
-                baseline_dist = None
+            baseline_dist = float(baseline_dist[0])
 
             # Save calibrated positions values
             calib_pos = {}
             for depth in ['Entrance', 'Midway', 'Exit']:
                 calib_pos[depth] = {}
-                calib_pos[depth]['Left'], calib_pos[depth]['Center'], calib_pos[depth]['Right'] = next(c_reader)
+                calib_pos[depth]['Left'], calib_pos[depth]['Center'], calib_pos[depth]['Right'] = [ float(m) for m in next(c_reader) ]
 
         logging.info(f"Load completed.")
 
         return baseline_dist, calib_pos
 
 
-    def _calc_normalizing_poly( self ) -> tuple:
+    def _calc_normalizing_poly( self ):
         """
         Fit the calibrated positions data to a polynomial (linear) for distance.
         This will allow distance from Entrance to Midway to Exit to be mapped to a value 1.0 to 0.5 to 0.0 (approximately).
@@ -408,13 +404,11 @@ class LightingController(Model):
         # NOTE: Right sensor no longer available, so only left sensor will be used in calcs
 
         # Build a set of x,y points to be fitted for this sensor
+        # Revised to focus only on 'Center' measurements at 'Entrance' and 'Midway'
         x_list = []
         y_list = []
-        for side in [ 'Left', 'Center', 'Right' ]:
+        for side in [ 'Center' ]:
             # Get the set of x,y points for this side for Entrance and Midway
-            # NOTE: Exclude 'Exit' measurements since they are behind the distance sensor
-            # x = [ self.calibrated_positions[depth][side][sensor] for depth in ['Entrance', 'Midway', 'Exit'] ]
-            # y = [ 1.0, 0.5, 0.0 ]
             x = [ self.calibrated_positions[depth][side] for depth in ['Entrance', 'Midway'] ]
             y = [ 1.0, 0.5 ]
             x_list.extend(x)
@@ -430,21 +424,14 @@ class LightingController(Model):
         return poly
         
 
-    def normalize_distance( self, d:tuple=None ) -> tuple:
+    def normalize_distance( self, d:float=None ) -> float:
         """
         Generate normalized distance by applying the linear equation
         fitted to the calibrated positions measurements
         """
         # Normalized distance for distance sensors
         # Raw distance is mapped to Entrance 1.0 -> Midway 0.5 -> Exit 0.0
-        try:
-            norm_dist = self.normalizing_poly.convert().coef[0] + self.normalizing_poly.convert().coef[1] * d[0]
-
-        except (TypeError, AttributeError):
-            norm_dist = None
-
-        return norm_dist
-
+        return self.normalizing_poly.convert().coef[0] + self.normalizing_poly.convert().coef[1] * d
 
 
     # *************************************************
