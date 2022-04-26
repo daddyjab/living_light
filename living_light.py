@@ -43,6 +43,7 @@ lc.init_model_scenario('Idle')
 
 # Distance and Proximity
 dist = None
+n_dist = None
 is_nearby = { 'Entrance':False, 'Exit':False }
 
 # Keypad
@@ -96,7 +97,7 @@ while True:
         last_led_update_timestamp = this_timestamp
 
         # Update LED patterns
-        lc.update_led_pattern(proximity=is_nearby, distance=dist, timestep=led_timestep )
+        lc.update_led_pattern(proximity=is_nearby, distance=n_dist, timestep=led_timestep )
 
         # Track the time that was required to update the LEDs
         led_update_complete_time = time.time()
@@ -244,9 +245,12 @@ while True:
         dist = lc.get_distance()
 
         try:
+            # Calculate the rolling average of distance
+            ra_dist = lc._distance_rolling_average( dist )
+
             # Normalize the distance (Entrance=1, Midway=0.5, Exit=0)
-            n_dist = lc.normalize_distance( dist )
-            logging.info(f"Distance: {dist} [Normalized: {n_dist}]")
+            n_dist = lc.normalize_distance( ra_dist )
+            logging.info(f"Distance: {dist}, Rolling Avg: {ra_dist}, Normalized Rolling Avg: {n_dist}")
 
         except TypeError:
             pass

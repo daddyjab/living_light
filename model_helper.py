@@ -287,6 +287,8 @@ class Model():
         # Calculate a single distance value based upon whichever sensors have non-null values
         # Ensure that the individual normalized distances are in the range 0.0 to 1.0.
         d = np.clip(distance, 0.0, 1.0)
+
+        # Convert the normalized distance to a distance index, where d_idx=0 corresponds to the Exit
         d_idx = int( np.round( d * (self.N_LED_PATTERN_DISTANCE-1) ) )
         
         # Timestep, where the interval between timesteps is self.LED_TIMESTEP_SEC
@@ -420,18 +422,26 @@ class Model():
         b_fixed = 0.3
         b_adj = 1.0
 
-        # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
-        if c=='Right':
-            # Sinusoidal cycling of brightness based upon column and timestep
-            b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
+        # Sinusoidal cycling of brightness based upon column and timestep
+        b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
 
-            # With slower sinusoidal cycling of brightness based only upon time
-            b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+        # With slower sinusoidal cycling of brightness based only upon time
+        b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
-        elif c=='Left':
-            # Sinusoidal cycling of brightness based upon column and timestep
-            b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) ) if n_c > 1 else 1.0
-            b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+        # # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
+        # if c=='Right':
+        #     # Sinusoidal cycling of brightness based upon column and timestep
+        #     b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
+
+        #     # With slower sinusoidal cycling of brightness based only upon time
+        #     b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+
+        # elif c=='Left':
+        #     # Sinusoidal cycling of brightness based upon column and timestep
+        #     b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) ) if n_c > 1 else 1.0
+
+        #     # With slower sinusoidal cycling of brightness based only upon time
+        #     b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
         # Return the composite brightness value
         return b_fixed + (1.0-b_fixed) * b_adj
@@ -470,26 +480,35 @@ class Model():
         r_focus = n_r//2
         c_focus = n_c//2
 
-        # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
-        if c=='Right':
-            # Ellipse of brightness based upon row and column
-            # overlaid with sinusoidal cycling of brightness based upon timestep only
-            b_steep = 4.0
-            b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_inc*(t % self.timesteps_per_cycle)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
+        # Ellipse of brightness based upon row and column
+        # overlaid with sinusoidal cycling of brightness based upon timestep only
+        b_steep = 4.0
+        b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_inc*(t % self.timesteps_per_cycle)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
 
-            # With slower sinusoidal cycling of brightness based only upon time
-            b_adj = np.clip( b_adj, 0.0, 1.0 )
-            b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+        # With slower sinusoidal cycling of brightness based only upon time
+        b_adj = np.clip( b_adj, 0.0, 1.0 )
+        b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
-        elif c=='Left':
-            # Ellipse of brightness based upon row and column
-            # overlaid with sinusoidal cycling of brightness based upon timestep only
-            b_steep = 4.0
-            b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_inc*(t % self.timesteps_per_cycle)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep )
+        # # Vary the adjustable part of the brightness by a slow-moving time function that simulates breathing rate.
+        # if c=='Right':
+        #     # Ellipse of brightness based upon row and column
+        #     # overlaid with sinusoidal cycling of brightness based upon timestep only
+        #     b_steep = 4.0
+        #     b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_inc*(t % self.timesteps_per_cycle)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
 
-            # With slower sinusoidal cycling of brightness based only upon time
-            b_adj = np.clip( b_adj, 0.0, 1.0 )
-            b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+        #     # With slower sinusoidal cycling of brightness based only upon time
+        #     b_adj = np.clip( b_adj, 0.0, 1.0 )
+        #     b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+
+        # elif c=='Left':
+        #     # Ellipse of brightness based upon row and column
+        #     # overlaid with sinusoidal cycling of brightness based upon timestep only
+        #     b_steep = 4.0
+        #     b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_inc*(t % self.timesteps_per_cycle)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep )
+
+        #     # With slower sinusoidal cycling of brightness based only upon time
+        #     b_adj = np.clip( b_adj, 0.0, 1.0 )
+        #     b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
 
         # Return the composite brightness value
         return b_fixed + (1.0-b_fixed) * b_adj
@@ -513,16 +532,19 @@ class Model():
 
         # Border
         if (r_ix in [1, n_r-1]) or (c_ix in [0, n_c-1]):
-            b = 1.0
+            return 1.0
 
-        # Show the full range of brightness values on all components (sides, top) of the model
-        elif c=='Right':
-            # Low to High Brightness based upon row and column
-            b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+        # Low to High Brightness based upon row and column
+        b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
 
-        elif c=='Left':
-            # Low to High Brightness based upon row and column
-            b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+        # # Show the full range of brightness values on all components (sides, top) of the model
+        # elif c=='Right':
+        #     # Low to High Brightness based upon row and column
+        #     b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
+
+        # elif c=='Left':
+        #     # Low to High Brightness based upon row and column
+        #     b = (float(r_ix)/(n_r-1) if n_r > 1 else 1.0) * (float(c_ix)/(n_c-1) if n_c > 1 else 1.0)
 
         return b
 

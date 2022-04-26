@@ -3,6 +3,7 @@ import logging
 
 # Standard dependencies
 import time, csv, os
+from tkinter import N
 
 import numpy as np
 from numpy.polynomial import Polynomial
@@ -50,6 +51,7 @@ class LightingController(Model):
         self.baseline_distance = None
         self.calibrated_positions = None        
         self.normalizing_poly = None
+        self.distance_rolling = []
         logging.info("Initializing the Distance Sensors")
         self._init_distance_sensors(run_distance_calib=run_distance_calibration)
 
@@ -293,6 +295,32 @@ class LightingController(Model):
         return dist['Left']
 
 
+    def _distance_rolling_average( self, d:float=None ) -> float:
+        """
+        Calculate the rolling average of the distance values
+        that have been provided in successive calls.
+        Smoothes out variations in distance measurements.
+        """
+        
+        # Target number of distance values over which to average
+        N_TARGET = 10
+
+        # Accumulate values until the target number of values is reached,
+        # then remove the oldest value when a new value is added
+        if len(self.distance_rolling) >= N_TARGET:
+
+            # Remove the oldest value
+            _ = self.distance_rolling.pop(0)
+
+        # Add the new value
+        self.distance_rolling.append(d)
+
+        # Calculate the average
+        dist_avg = np.mean(self.distance_rolling)
+
+        return dist_avg
+
+
     def _calibrate_distance_sensor( self ):
         """
         Run a semiautomated calibration procedure to
@@ -431,7 +459,12 @@ class LightingController(Model):
         """
         # Normalized distance for distance sensors
         # Raw distance is mapped to Entrance 1.0 -> Midway 0.5 -> Exit 0.0
-        return self.normalizing_poly.convert().coef[0] + self.normalizing_poly.convert().coef[1] * d
+        
+        nd = None
+        if d is not None:
+            nd = self.normalizing_poly.convert().coef[0] + self.normalizing_poly.convert().coef[1] * d
+            
+        return nd
 
 
     # *************************************************
