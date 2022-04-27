@@ -86,7 +86,7 @@ class Model():
             # Normal Scenarios
             'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'ellipse', 'brightness_scale': 0.5, 'cycle_time': 5.0 },
             'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 0.75, 'cycle_time': 4.0 },
-            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 3.0 },
+            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'move_it', 'brightness_scale': 1.0, 'cycle_time': 3.0 },
 
             # Diagnostic Scenarios (all performed with brightest color profile)
             'diag_calibrate_distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_on', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
@@ -130,6 +130,7 @@ class Model():
 
         # Brightness Pattern Functions
         self.BRIGHTNESS_PATTERN_FUNCTION = {
+            'move_it': self._pattern_move_it,
             'come_in': self._pattern_come_in,
             'ellipse': self._pattern_ellipse,
             'range': self._pattern_range,
@@ -398,23 +399,32 @@ class Model():
     #   * During exercise (adult normal): 40-60 breaths per minute => 1 to 1.5 seconds per breath
     # **********************************************************************************************
 
-
-    def _pattern_come_in( self, c, r_ix, c_ix, n_r, n_c, t:int=0, dist:int=0, prox:int=0 ):
+    def _pattern_move_it( self, c, r_ix, c_ix, n_r, n_c, t:int=0, dist:int=0, prox:int=0 ):
         """
-        Provide an elliptic pattern of brightness that invites a person to enter the space,
+        Provide a rectangular pattern of brightness that invites a person to enter the space,
         with the pattern brighness overlaid with a slower overall variation in brightness
-        akin to "breathing"
+        akin to "breathing".
+        Top row(s) of LEDs turned full on/full off to create
+        a pattern of moving shadows on the top of the model.
         """
-
-        # Set shadow control LEDs to provide full brightness for LEDs
-        # on the top row and with a fixed column spacing, which will generate
-        # a specific, fixed (or possibly varying) shadow on the top of the model
-        if r_ix in self.SHADOW_CONTROL_ROWS:
-            return self.SHADOW_CONTROL_BRIGHTNESS if c_ix in self.SHADOW_CONTROL_COLUMNS else 0.0
       
         # Rate at which column should be incremented per timestep (LEDs/timestep)
         # [LED columns/timestep]=> # of Columns [LED columns/cycle] / Timesteps per Cycle [timesteps/cycle]
         col_inc = float(n_c) / self.timesteps_per_cycle
+
+        # Number of columns to adjust the pattern based upon the current timestep
+        # [LED Column Index]
+        col_adj = col_inc*(t % self.timesteps_per_cycle)
+
+        # Set shadow control LEDs to create a pattern of moving shadows on the top of the model
+        # NOTE: Force this to be the top 2 rows of LEDs
+        if r_ix in [0,1]:
+
+            # Generate a pattern of LEDS on with others off such that movement is simulated.
+            # Movement is simulated by setting one of every N_LEDS_SHADOW_MOVEMENT LEDs on
+            # and then turning other LEDs on the shadow control rows off.
+            N_LEDS_SHADOW_MOVEMENT = 3
+            return self.SHADOW_CONTROL_BRIGHTNESS if int(abs(c_ix - round(col_adj))) % N_LEDS_SHADOW_MOVEMENT == 0 else 0.0
 
         # Rate at which "breathing" should be incremented per timestep
         # Breathing Rate = [One Breath (dim->bright->dim) / Cycle]
@@ -429,7 +439,56 @@ class Model():
         b_adj = 1.0
 
         # Sinusoidal cycling of brightness based upon column and timestep
-        b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_inc*(t % self.timesteps_per_cycle))/(n_c-1) ) ) if n_c > 1 else 1.0 )
+        b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_adj)/(n_c-1) ) ) if n_c > 1 else 1.0 )
+
+        # With slower sinusoidal cycling of brightness based only upon time
+        b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
+
+        # Make brightness stronger when an object is between the Entrance (dist==9) and Midway (dist==4 or 5),
+        # and dimmer beyond this range
+        if 9 >= dist >= 4:
+            BRIGHTNESS_INCREASE_NEAR_ENTRANCE = 1.25
+            b_adj *= BRIGHTNESS_INCREASE_NEAR_ENTRANCE
+
+        # Return the composite brightness value
+        return b_fixed + (1.0-b_fixed) * b_adj
+
+
+    def _pattern_come_in( self, c, r_ix, c_ix, n_r, n_c, t:int=0, dist:int=0, prox:int=0 ):
+        """
+        Provide a rectangular pattern of brightness that invites a person to enter the space,
+        with the pattern brighness overlaid with a slower overall variation in brightness
+        akin to "breathing".
+        Top row(s) of LEDs are controlled separately to indirectly create shadows on the top of the model.
+        """
+
+        # Set shadow control LEDs to provide full brightness for LEDs
+        # on the top row and with a fixed column spacing, which will generate
+        # a specific, fixed (or possibly varying) shadow on the top of the model
+        if r_ix in self.SHADOW_CONTROL_ROWS:
+            return self.SHADOW_CONTROL_BRIGHTNESS if c_ix in self.SHADOW_CONTROL_COLUMNS else 0.0
+      
+        # Rate at which column should be incremented per timestep (LEDs/timestep)
+        # [LED columns/timestep]=> # of Columns [LED columns/cycle] / Timesteps per Cycle [timesteps/cycle]
+        col_inc = float(n_c) / self.timesteps_per_cycle
+        
+        # Number of columns to adjust the pattern based upon the current timestep
+        col_adj = col_inc*(t % self.timesteps_per_cycle)
+
+        # Rate at which "breathing" should be incremented per timestep
+        # Breathing Rate = [One Breath (dim->bright->dim) / Cycle]
+        BREATHING_RATE = 1.0
+
+        # Breathing Increment [ Breaths / Timestep ] = [ One Breath (dim->bright->dim) / Cycle ] / Timesteps per Cycle [timesteps/cycle]
+        breath_inc = BREATHING_RATE / self.timesteps_per_cycle
+
+        # Brightness decomposed to a fixed base brightness level
+        # plus an adjusted brightness that can vary based upon the various input parameters
+        b_fixed = 0.3
+        b_adj = 1.0
+
+        # Sinusoidal cycling of brightness based upon column and timestep
+        b_adj = np.abs( np.sin( np.pi * ( (c_ix - col_adj)/(n_c-1) ) ) if n_c > 1 else 1.0 )
 
         # With slower sinusoidal cycling of brightness based only upon time
         b_adj *= np.abs( np.sin( np.pi * breath_inc*t ) )
@@ -455,6 +514,9 @@ class Model():
         # [LED columns/timestep]=> # of Columns [LED columns/cycle] / Timesteps per Cycle [timesteps/cycle]
         col_inc = float(n_c) / self.timesteps_per_cycle
 
+        # Number of columns to adjust the pattern based upon the current timestep
+        col_adj = col_inc*(t % self.timesteps_per_cycle)
+
         # Rate at which "breathing" should be incremented per timestep
         # Breathing Rate = [One Breath (dim->bright->dim) / Cycle]
         BREATHING_RATE = 1.0
@@ -474,7 +536,7 @@ class Model():
         # Ellipse of brightness based upon row and column
         # overlaid with sinusoidal cycling of brightness based upon timestep only
         b_steep = 4.0
-        b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_inc*(t % self.timesteps_per_cycle)-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
+        b_adj = 1.0 - np.power( np.abs( r_focus-r_ix )**b_steep + np.abs( col_adj-c_ix )**b_steep, 1.0/b_steep ) / np.power( r_focus**3 + c_focus**b_steep, 1.0/b_steep ) 
 
         # With slower sinusoidal cycling of brightness based only upon time
         b_adj = np.clip( b_adj, 0.0, 1.0 )
@@ -590,4 +652,3 @@ class Model():
                         _draw_led( ( pix_per_col*col + bbox[0], pix_per_row*row + bbox[1] ), color=self.led_array[c][row-1][col-1] )
                     else:
                         _draw_led( ( pix_per_col*col + bbox[0], pix_per_row*row + bbox[1] ) )
-
