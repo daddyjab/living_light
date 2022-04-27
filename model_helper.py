@@ -84,9 +84,9 @@ class Model():
         self.MODEL_SCENARIO_CONFIG = {
 
             # Normal Scenarios
-            'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'ellipse', 'brightness_scale': 0.5, 'cycle_time': 4.0 },
+            'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'ellipse', 'brightness_scale': 0.5, 'cycle_time': 5.0 },
             'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 0.75, 'cycle_time': 4.0 },
-            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
+            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'come_in', 'brightness_scale': 1.0, 'cycle_time': 3.0 },
 
             # Diagnostic Scenarios (all performed with brightest color profile)
             'diag_calibrate_distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_on', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
