@@ -139,6 +139,10 @@ while True:
 
         # Report Header
         logging.info(f"\n**** Scenario '{lc.scenario}': Color Profile '{lc.MODEL_SCENARIO_CONFIG[lc.scenario]['color_profile']}', Pattern '{lc.MODEL_SCENARIO_CONFIG[lc.scenario]['led_pattern']}'")
+        if unattended_mode:
+            logging.info("Running in Unattended Mode -- Commands are Restricted")
+        else:
+            logging.info("Running in Interactive Mode -- All Commands are Available")
 
         # If a keys were pressed during the main loop, then display them.
         if retained_pressed_keys:
@@ -149,7 +153,7 @@ while True:
             # **************************************************************
 
             # If we're in interactive mode and 1234 are all pressed, then exit this program.
-            if ~unattended_mode and retained_pressed_keys == [1,2,3,4]:
+            if retained_pressed_keys == [1,2,3,4]:
                 logging.info("**** All Keys Pressed (1+2+3+4): Ending Lighting Controller Program -- Goodbye!")
 
                 # Turn off the LED Strip
