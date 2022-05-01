@@ -4,7 +4,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 # Standard dependencies
-import time, os
+import time, sys
 
 # Classes and functions for managing the lighting controller
 from controller_helper import LightingController
@@ -12,13 +12,8 @@ from controller_helper import LightingController
 # Classes and functions for controlling the conceptual model
 from model_helper import *
 
-# Set command constraints if Living Light was being launched in
-# Unattended vs. Interactive mode
-#LL_UNATTENDED = os.environ.get('LL_UNATTENDED',None)
-#unattended_mode = True if ((LL_UNATTENDED is not None) and (LL_UNATTENDED==1)) else False
-#print(f"LL_UNATTENDED: {LL_UNATTENDED}, unattended_mode: {unattended_mode}")
-# Manually set unattended_mode
-unattended_mode = True
+# Set command constraints if Living Light was being launched in Unattended vs. Interactive mode
+unattended_mode = True if 'UNATTENDED' in sys.argv else False
 
 # Create a LightingController object,
 # which initializes the controller and all of its sensors
@@ -171,7 +166,7 @@ while True:
             # **************************************************************
 
             # If we're in interactive mode and *only* 3 and 4 are pressed, then perform a diagnostic function: Highlight every 10th LED
-            elif ~unattended_mode and retained_pressed_keys == [3,4]:
+            elif ~unattended_mode and (retained_pressed_keys == [3,4]):
                 logging.info("**** Keys 3 and 4 Pressed: Highlighting every 10th LED on the full LED Strip")
 
                 # Turn off the LED Strip
@@ -180,7 +175,7 @@ while True:
 
 
             # If we're in interactive mode and *only* 2 and 4 are pressed, then perform the diagnostic function: Brightness Range
-            elif ~unattended_mode and retained_pressed_keys == [2,4]:
+            elif ~unattended_mode and (retained_pressed_keys == [2,4]):
                 logging.info("**** Keys 2 and 4 Pressed: Select a Normal or Diagnostic Lighting Scenario by Name")
 
                 scen_choice = 'x'
@@ -203,7 +198,7 @@ while True:
 
 
             # If we're in interactive mode and *only* 1 and 4 are pressed, then perform the diagnostic function: Calibrate Distance
-            elif ~unattended_mode and retained_pressed_keys == [1,4]:
+            elif ~unattended_mode and (retained_pressed_keys == [1,4]):
                 logging.info("**** Keys 1 and 4 Pressed: Launching Distance Calibration Procedure")
 
                 # Change lighting scenario to high brightness during calibration
