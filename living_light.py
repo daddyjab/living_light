@@ -166,7 +166,7 @@ while True:
             # **************************************************************
 
             # If we're in interactive mode and *only* 3 and 4 are pressed, then perform a diagnostic function: Highlight every 10th LED
-            elif ~unattended_mode and (retained_pressed_keys == [3,4]):
+            elif (unattended_mode == False) and (retained_pressed_keys == [3,4]):
                 logging.info("**** Keys 3 and 4 Pressed: Highlighting every 10th LED on the full LED Strip")
 
                 # Turn off the LED Strip
@@ -175,7 +175,7 @@ while True:
 
 
             # If we're in interactive mode and *only* 2 and 4 are pressed, then perform the diagnostic function: Brightness Range
-            elif ~unattended_mode and (retained_pressed_keys == [2,4]):
+            elif (unattended_mode == False) and (retained_pressed_keys == [2,4]):
                 logging.info("**** Keys 2 and 4 Pressed: Select a Normal or Diagnostic Lighting Scenario by Name")
 
                 scen_choice = 'x'
@@ -198,7 +198,7 @@ while True:
 
 
             # If we're in interactive mode and *only* 1 and 4 are pressed, then perform the diagnostic function: Calibrate Distance
-            elif ~unattended_mode and (retained_pressed_keys == [1,4]):
+            elif (unattended_mode == False) and (retained_pressed_keys == [1,4]):
                 logging.info("**** Keys 1 and 4 Pressed: Launching Distance Calibration Procedure")
 
                 # Change lighting scenario to high brightness during calibration

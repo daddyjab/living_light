@@ -25,5 +25,7 @@
 #
 # * No args: Run interactively
 #      => All keyboard commands are supported
+#
+# IMPT: Be sure to run "chmod +x run_living_light.bash" after any "git pull"
 
 cd /home/pi/Documents/living_light; sudo python3 ./living_light.py UNATTENDED 2>&1
