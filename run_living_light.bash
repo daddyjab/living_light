@@ -25,4 +25,4 @@
 # * 0 or not populated: Run interactively
 #      => All keyboard commands are supported
 
-export LL_UNATTENDED=1; cd /home/pi/Documents/living_light; sudo python3 ./living_light.py 2>&1 > ./logs/log_ll.txt
+export cd /home/pi/Documents/living_light; sudo python3 ./living_light.py UNATTENDED 2>&1 > ./logs/log_ll.txt
