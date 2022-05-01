@@ -14,7 +14,11 @@ from model_helper import *
 
 # Set command constraints if Living Light was being launched in
 # Unattended vs. Interactive mode
-unattended_mode = True if os.environ.get('LL_UNATTENDED',0) == 1 else False
+#LL_UNATTENDED = os.environ.get('LL_UNATTENDED',None)
+#unattended_mode = True if ((LL_UNATTENDED is not None) and (LL_UNATTENDED==1)) else False
+#print(f"LL_UNATTENDED: {LL_UNATTENDED}, unattended_mode: {unattended_mode}")
+# Manually set unattended_mode
+unattended_mode = True
 
 # Create a LightingController object,
 # which initializes the controller and all of its sensors
