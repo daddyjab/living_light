@@ -7,7 +7,7 @@
 # To configure cron to automatically start up living light, enter the command:
 #  $ sudo crontab -e
 # and then insert the following as the last line:
-#  @reboot sudo python /home/pi/living_light/run_living_light.bash 2&1 > /home/pi/Documents/living_light/log_run_ll.txt
+#  @reboot sudo python /home/pi/Documents/living_light/run_living_light.bash 2&1 > /home/pi/Documents/living_light/log_run_ll.txt
 #
 # To see the contents of the Raspberry Pi bootlog, enter the command:
 # grep cron /var/log/syslog
@@ -25,4 +25,4 @@
 # * 0 or not populated: Run interactively
 #      => All keyboard commands are supported
 
-export LL_UNATTENDED=1; cd /home/pi/living_light; sudo python3 ./living_light.py 2>&1 > ./logs/log_ll.txt
+export LL_UNATTENDED=1; cd /home/pi/Documents/living_light; sudo python3 ./living_light.py 2>&1 > ./logs/log_ll.txt

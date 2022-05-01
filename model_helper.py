@@ -85,8 +85,8 @@ class Model():
 
             # Normal Scenarios
             'Idle': { 'color_profile': '40W Tungsten', 'led_pattern': 'ellipse', 'brightness_scale': 0.5, 'cycle_time': 5.0 },
-            'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 0.75, 'cycle_time': 4.0 },
-            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'move_it', 'brightness_scale': 1.0, 'cycle_time': 3.0 },
+            'Standard': { 'color_profile': 'High Noon Sun', 'led_pattern': 'come_in', 'brightness_scale': 0.75, 'cycle_time': 4.5 },
+            'Energy': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'move_it', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
 
             # Diagnostic Scenarios (all performed with brightest color profile)
             'diag_calibrate_distance': { 'color_profile': 'Direct Sunlight', 'led_pattern': 'all_on', 'brightness_scale': 1.0, 'cycle_time': 4.0 },
@@ -418,7 +418,7 @@ class Model():
 
         # Set shadow control LEDs to create a pattern of moving shadows on the top of the model
         # NOTE: Force this to be the top 2 rows of LEDs
-        if r_ix in [0,1]:
+        if r_ix in self.SHADOW_CONTROL_ROWS:
 
             # Generate a pattern of LEDS on with others off such that movement is simulated.
             # Movement is simulated by setting one of every N_LEDS_SHADOW_MOVEMENT LEDs on
