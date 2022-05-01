@@ -3,14 +3,26 @@
 #
 # To schedule this script for automatic execution via cron, see:
 # https://www.dexterindustries.com/howto/auto-run-python-programs-on-the-raspberry-pi/
+# 
+# To configure cron to automatically start up living light, enter the command:
+#  $ sudo crontab -e
+# and then insert the following as the last line:
+#  @reboot sudo python /home/pi/living_light/run_living_light.bash 2&1 > /home/pi/Documents/living_light/log_run_ll.txt
+#
+# To see the contents of the Raspberry Pi bootlog, enter the command:
+# grep cron /var/log/syslog
+#
+# Shell command that sets a variable indicating unattended operation,
+# changes directory to /home/pi/living_light, and then runs the living_light code,
+# with any output messages saved to a file
 #
 # LL_ATTENDED values:
 # * 1: Run unattended (via cron)
-#   => Disables Keypad commands that require console/keyboard input
-#   => Disables the Keypad 1+2+3+4 sequence (the program does not stop)
+#      => Keypad 1+2+3+4 stops the living light program
+#      => Keypad 1, 2 or 3 sets the corresponding Scenario (Idle, Standard, Energy)
+#      => Disables other Keypad commands
 #
 # * 0 or not populated: Run interactively
-#   => All keyboard commands are supported
-#   => Keypad 1+2+3+4 stops the living light program
+#      => All keyboard commands are supported
 
-export LL_UNATTENDED=1; cd /home/pi/living_light; sudo python3 ./living_light.py 2>&1 > ./logs/log_$$.txt
+export LL_UNATTENDED=1; cd /home/pi/living_light; sudo python3 ./living_light.py 2>&1 > ./logs/log_ll.txt
